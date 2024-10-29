@@ -27,20 +27,19 @@ export class TrainingService {
 
     async searchTrainings(date: string, groupId: string, locationId: string, page: string) {
         try {
+
             const whereConditions: any = {};
             const pageNumber = parseInt(page, 10);
             if (isNaN(pageNumber) || pageNumber <= 0) {
                 throw new HttpException('Page must be a positive number', HttpStatus.BAD_REQUEST);
             }
-            // Проверяем дату
             const requestedDate = new Date(date);
             const today = new Date();
-            today.setHours(0, 0, 0, 0); // Устанавливаем время в 00:00, чтобы сравнение было только по дате
+            today.setHours(0, 0, 0, 0); 
 
             if (requestedDate < today) {
                 throw new HttpException('Date cannot be earlier than today', HttpStatus.BAD_REQUEST);
             }
-            // Проверка на groupId и locationId: если не 0, добавляем в условия
             if (groupId && parseInt(groupId) !== 0) {
                 whereConditions.groupId = groupId;
             }
@@ -62,8 +61,17 @@ export class TrainingService {
                     ...whereConditions,
                 },
                 order: [['startTime', 'ASC']],
+                include: [
+                    {
+                        model: Group, // Подгружаем данные из модели Group
+                        attributes: ['groupName', "color", 'groupUrl'], // Указываем, какие поля включить
+                    },
+                    {
+                        model: Location, // Подгружаем данные из модели Group
+                        attributes: ['locationName', 'locationUrl'], // Указываем, какие поля включить
+                    },
+                ]
             });
-            console.log(trainings)
             const result = [];
             for (const training of trainings) {
                 const { startTime, endTime, repeatType } = training;
@@ -116,7 +124,7 @@ export class TrainingService {
                     },
                     {
                         model: Location, // Подгружаем данные из модели Group
-                        attributes: ['locationName'], // Указываем, какие поля включить
+                        attributes: ['locationName', 'locationUrl'], // Указываем, какие поля включить
                     },
                 ]
             });
@@ -157,7 +165,7 @@ export class TrainingService {
                     },
                     {
                         model: Location, // Подгружаем данные из модели Group
-                        attributes: ['locationName'], // Указываем, какие поля включить
+                        attributes: ['locationName', 'locationUrl'], // Указываем, какие поля включить
                     },
                 ]
             })
