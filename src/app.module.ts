@@ -17,6 +17,7 @@ import { Group } from './group/group.model';
 import { Location } from './location/location.model';
 import { Training } from './training/training.model';
 import { Application } from './application/application.model';
+import { TrainingDates } from './training/trainig-dates.model';
 
 
 @Module({
@@ -31,8 +32,8 @@ import { Application } from './application/application.model';
       username: 'root',
       password:'root',
       database: process.env.MYSQL_DB,
-      models: [User,Token, Group, Location, Training, Application],
-      autoLoadModels: false
+      models: [User,Token, Group, Location, Training, Application,TrainingDates],
+      autoLoadModels:  true
     }),
     UserModule,
     TokenModule,

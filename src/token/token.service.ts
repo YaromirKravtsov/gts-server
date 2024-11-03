@@ -17,7 +17,7 @@ export class TokenService {
     generateTokens(payload: PayloadDto): { accessToken: string; refreshToken: string } {
         try {
 
-            const accessToken = sign({ ...payload }, process.env.JWT_ACCESS_SECRET, { expiresIn: '1d' });
+            const accessToken = sign({ ...payload }, process.env.JWT_ACCESS_SECRET, { expiresIn: '15m' });//15m
             const refreshToken = sign({ ...payload }, process.env.JWT_REFRESH_SECRET, { expiresIn: '30d' });
 
 
@@ -114,15 +114,12 @@ export class TokenService {
     }
 
 
-    ///////////////////////
-    // helpers
     generateDeviceId(): string {
         return crypto.randomBytes(Math.ceil(20 / 2))
-            .toString('hex') // Преобразование в шестнадцатеричное представление
-            .slice(0, 20); // Обрезаем до нужной длины
+            .toString('hex') 
+            .slice(0, 20);
     }
 
-    /////////////////////// 
     async findToken(refreshToken) {
         try {
             const tokenData = await this.tokenRepository.findOne({ where: { refreshToken } })

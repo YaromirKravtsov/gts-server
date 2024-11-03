@@ -3,6 +3,7 @@ import { CreateGroupDto } from './dto/create-group.dto';
 import { GroupService } from './group.service';
 import { Roles } from 'src/role/roles-auth-decorator';
 import { RoleGuard } from 'src/role/role.gurard';
+import { ApiBody, ApiOperation } from '@nestjs/swagger';
 
 @Controller('groups')
 export class GroupController {
@@ -11,6 +12,8 @@ export class GroupController {
 
     @Roles(['admin'])
     @UseGuards(RoleGuard)
+    @ApiOperation({ summary: 'Create group' })
+    @ApiBody({type: CreateGroupDto})
     @Post()
     async createGroup(@Body() dto:CreateGroupDto){
         try{
@@ -21,6 +24,7 @@ export class GroupController {
     }
 
     @Get()
+    @ApiOperation({ summary: 'Get All Groups' })
     async getAll(){
         try{
             return this.groupService.getAll()

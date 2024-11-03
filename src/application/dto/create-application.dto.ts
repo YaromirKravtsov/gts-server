@@ -1,18 +1,28 @@
-export interface CreateApplicationDto{
+import { ApiProperty } from '@nestjs/swagger';
+
+export class CreateApplicationDto {
+    @ApiProperty({ 
+        example: 'John Doe', 
+        description: 'Name of the player applying for the training' 
+    })
     playerName: string;
+
+    @ApiProperty({ 
+        example: '+123456789', 
+        description: 'Phone number of the player' 
+    })
     playerPhone: string;
-    playerComment?:string;
-    trainingId: number;
-    date: Date
-}
 
-/* 
-{
-    "playerName": "Yaromir Kravtsov",
-    "playerPhone": "+49111111",
-    "playerComment": "playerComment playerComment playerComment",
-    "trainingId": 2,
-    "date": "2024-10-07T09:00:00.000Z"
-}
+    @ApiProperty({ 
+        example: 'Looking forward to the training!', 
+        description: 'Optional comment from the player',
+        required: false
+    })
+    playerComment?: string;
 
-*/
+    @ApiProperty({ 
+        example: 1, 
+        description: 'ID of the training date this application is associated with' 
+    })
+    trainingDatesId: number;
+}
