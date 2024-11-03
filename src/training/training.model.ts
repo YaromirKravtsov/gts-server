@@ -3,6 +3,7 @@ import { Model, Column, DataType, Table, ForeignKey, BelongsTo, HasMany } from "
 import { Application } from "src/application/application.model";
 import { Group } from "src/group/group.model";
 import { Location } from "src/location/location.model";
+import { TrainingDates } from "./trainig-dates.model";
 
 
 interface TrainingCreationAttrs {
@@ -46,8 +47,8 @@ export class Training extends Model<Training, TrainingCreationAttrs> {
     @BelongsTo(() => Location)
     location: Location;
 
-    @HasMany(() => Application)
-    applications: Application[]
+    @HasMany(() => TrainingDates)
+    trainigDates: TrainingDates[] 
 
 }
 

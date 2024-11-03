@@ -1,258 +1,331 @@
-import { Get, HttpException, HttpStatus, Injectable, Query, UseGuards } from '@nestjs/common';
+import { Get, HttpException, HttpStatus, Injectable, NotFoundException, Query, UseGuards } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Training } from './training.model';
-import { CreateTrainigDto } from './dto/create-training-dto';
+import { CreateTrainingDto } from './dto/create-training-dto';
 import { Roles } from 'src/role/roles-auth-decorator';
 import { RoleGuard } from 'src/role/role.gurard';
 import { Model, Op } from 'sequelize';
 import { Group } from 'src/group/group.model';
 import { Location } from 'src/location/location.model';
+import { TrainingDates } from './trainig-dates.model';
+import { DeleteTrainigDto } from './dto/delete-training';
+import { UpdateTrainingDto } from './dto/update-trainig.dto';
 
 @Injectable()
 export class TrainingService {
-    constructor(@InjectModel(Training) private trainingRepository: typeof Training
+    constructor(@InjectModel(Training) private trainingRepository: typeof Training,
+        @InjectModel(TrainingDates) private trainingDatesRepository: typeof TrainingDates,
     ) { }
 
+    // Создание пробных тренировок
+    async createTraining(dto: CreateTrainingDto): Promise<Training> {
+        const { startTime, endTime, repeat_type, groupId, locationId } = dto;
 
-    async createTraining(dto: CreateTrainigDto) {
-        try {
-            const training = await this.trainingRepository.create({ ...dto, isTrail: true });
-            return training.id;
-        } catch (error) {
-            throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-
-
-    async searchTrainings(date: string, groupId: string, locationId: string, page: string) {
-        try {
-
-            const whereConditions: any = {};
-            const pageNumber = parseInt(page, 10);
-            if (isNaN(pageNumber) || pageNumber <= 0) {
-                throw new HttpException('Page must be a positive number', HttpStatus.BAD_REQUEST);
-            }
-            const requestedDate = new Date(date);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0); 
-
-            if (requestedDate < today) {
-                throw new HttpException('Date cannot be earlier than today', HttpStatus.BAD_REQUEST);
-            }
-            if (groupId && parseInt(groupId) !== 0) {
-                whereConditions.groupId = groupId;
-            }
-            if (locationId && parseInt(locationId) !== 0) {
-                whereConditions.locationId = locationId;
-            }
-
-            const limit = 20; // Количество записей на одну страницу (15-дневный интервал)
-
-            // Устанавливаем начальную и конечную даты для указанной страницы
-
-            requestedDate.setDate(requestedDate.getDate() + (parseInt(page) - 1) * 15); // Смещаем начальную дату на 15 дней вперед для каждой страницы
-            const endDate = new Date(requestedDate);
-            endDate.setDate(endDate.getDate() + 15); // Окончание интервала через 15 дней
-
-            // Получаем все тренировки, удовлетворяющие условиям
-            const trainings = await this.trainingRepository.findAll({
-                where: {
-                    ...whereConditions,
-                },
-                order: [['startTime', 'ASC']],
-                include: [
-                    {
-                        model: Group, // Подгружаем данные из модели Group
-                        attributes: ['groupName', "color", 'groupUrl'], // Указываем, какие поля включить
-                    },
-                    {
-                        model: Location, // Подгружаем данные из модели Group
-                        attributes: ['locationName', 'locationUrl'], // Указываем, какие поля включить
-                    },
-                ]
-            });
-            const result = [];
-            for (const training of trainings) {
-                const { startTime, endTime, repeatType } = training;
-
-                if (repeatType === 1) {
-                    this.addRepeatedTrainings(result, training, startTime, endTime, requestedDate, 'day', endDate);
-                } else if (repeatType === 2) {
-                    this.addRepeatedTrainings(result, training, startTime, endTime, requestedDate, 'week', endDate);
-                } else if (repeatType === 3) {
-                    this.addRepeatedTrainings(result, training, startTime, endTime, requestedDate, 'month', endDate);
-                } else if (repeatType === 4) {
-                    if (this.isSameDay(requestedDate, startTime)) {
-                        result.push(training);
-                    }
-                }
-            }
-
-            // Форматируем и группируем результаты
-            const formattedResults = this.formatTrainingsByDate(result);
-
-            return {
-                page,
-                totalTrainings: result.length,
-                data: formattedResults.slice(0, limit), // Показ только первых 15 записей после группировки
-            };
-        } catch (error) {
-            throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    async getTrainingsForMonth(date: string) {
-        try {
-            // Парсим дату и находим начало и конец месяца
-            const requestedDate = new Date(date);
-            const startOfMonth = new Date(requestedDate.getFullYear(), requestedDate.getMonth(), 1);
-            const endOfMonth = new Date(requestedDate.getFullYear(), requestedDate.getMonth() + 1, 0);
-
-            // Запрашиваем все тренировки в этом месяце
-            const trainings = await this.trainingRepository.findAll({
-                where: {
-                    startTime: {
-                        [Op.between]: [startOfMonth, endOfMonth],
-                    },
-                },
-                order: [['startTime', 'ASC']], // Сортируем по startTime
-                include: [
-                    {
-                        model: Group, // Подгружаем данные из модели Group
-                        attributes: ['groupName', "color"], // Указываем, какие поля включить
-                    },
-                    {
-                        model: Location, // Подгружаем данные из модели Group
-                        attributes: ['locationName', 'locationUrl'], // Указываем, какие поля включить
-                    },
-                ]
-            });
-
-            const result = [];
-            for (const training of trainings) {
-                const { startTime, endTime, repeatType } = training;
-
-                // Добавляем повторяющиеся тренировки в пределах месяца
-                if (repeatType === 1) {
-                    this.addRepeatedTrainings(result, training, startTime, endTime, startOfMonth, 'day', endOfMonth);
-                } else if (repeatType === 2) {
-                    this.addRepeatedTrainings(result, training, startTime, endTime, startOfMonth, 'week', endOfMonth);
-                } else if (repeatType === 3) {
-                    this.addRepeatedTrainings(result, training, startTime, endTime, startOfMonth, 'month', endOfMonth);
-                } else if (repeatType === 4) {
-                    if (this.isWithinMonth(startTime, startOfMonth, endOfMonth)) {
-                        result.push(training);
-                    }
-                }
-            }
-
-            // Форматируем результаты по дате и дню недели
-            return result;
-        } catch (error) {
-            throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    async getTraining(id: number) {
-        try {
-            return await this.trainingRepository.findOne({
-                where: { id },
-                include: [
-                    {
-                        model: Group, // Подгружаем данные из модели Group
-                        attributes: ['groupName', "color"], // Указываем, какие поля включить
-                    },
-                    {
-                        model: Location, // Подгружаем данные из модели Group
-                        attributes: ['locationName', 'locationUrl'], // Указываем, какие поля включить
-                    },
-                ]
-            })
-
-        } catch (error) {
-            throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR)
-        }
-    }
-
-
-    // Helpres
-
-    // Метод для форматирования и группировки тренировок по дате и дню недели на немецком
-    private formatTrainingsByDate(trainings) {
-        const daysOfWeek = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
-
-        // Сортируем тренировки по startTime
-        trainings.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-
-        const groupedTrainings = {};
-
-        // Группируем тренировки по дате
-        trainings.forEach((training) => {
-            const date = new Date(training.startTime);
-            const dayName = daysOfWeek[date.getDay()];
-            const formattedDate = `${dayName}, ${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1)
-                .toString()
-                .padStart(2, '0')}.${date.getFullYear().toString().slice(-2)}`;
-
-            if (!groupedTrainings[formattedDate]) {
-                groupedTrainings[formattedDate] = [];
-            }
-
-            groupedTrainings[formattedDate].push(training);
+        // Создаем основную запись в Training
+        const training = await this.trainingRepository.create({
+            isTrail: true,
+            startTime,
+            endTime,
+            repeatType: repeat_type,
+            groupId,
+            locationId,
         });
 
-        // Преобразуем в массив объектов с датой и тренировками
-        return Object.keys(groupedTrainings).map((date) => ({
-            date,
-            trainings: groupedTrainings[date],
+        const trainingDates = [];
+        const currentStartDate = new Date(startTime);
+        const currentEndDate = new Date(endTime);
+        const finalDate = new Date(startTime);
+        finalDate.setMonth(finalDate.getMonth() + 6); // Полгода вперед
+
+        // Создаем записи в TrainingDates в зависимости от repeat_type
+        while (currentStartDate <= finalDate) {
+            trainingDates.push({
+                trainingId: training.id,
+                startDate: new Date(currentStartDate), // Устанавливаем startDate
+                endDate: new Date(currentEndDate),     // Устанавливаем endDate
+            });
+
+            // Увеличиваем currentStartDate и currentEndDate в зависимости от типа повторения
+            if (repeat_type === 1) {
+                // Ежедневно
+                currentStartDate.setDate(currentStartDate.getDate() + 1);
+                currentEndDate.setDate(currentEndDate.getDate() + 1);
+            } else if (repeat_type === 2) {
+                // Еженедельно
+                currentStartDate.setDate(currentStartDate.getDate() + 7);
+                currentEndDate.setDate(currentEndDate.getDate() + 7);
+            } else if (repeat_type === 3) {
+                // Ежемесячно
+                currentStartDate.setMonth(currentStartDate.getMonth() + 1);
+                currentEndDate.setMonth(currentEndDate.getMonth() + 1);
+            }
+        }
+
+        // Сохраняем записи в TrainingDates с полями startDate и endDate
+        await this.trainingDatesRepository.bulkCreate(trainingDates);
+
+        return training;
+    }
+
+
+    // Поиск пробных тренировок
+    async searchTrainings(date: string, groupId: string, locationId: string, page: string) {
+        const recordsPerPage = 10;
+        const pageNumber = parseInt(page, 10) || 1;
+        const offset = (pageNumber - 1) * recordsPerPage;
+
+        const currentDate = new Date();
+        const startDate = date ? new Date(date) : currentDate;
+        if (startDate < currentDate) startDate.setTime(currentDate.getTime());
+
+        // Получаем все trainingIds, соответствующие groupId и locationId, если указаны
+        const trainingIds = await this.trainingRepository.findAll({
+            where: {
+                ...(groupId && { groupId: parseInt(groupId, 10) }),
+                ...(locationId && { locationId: parseInt(locationId, 10) }),
+            },
+            attributes: ['id'], // выбираем только id
+        }).then(trainings => trainings.map(training => training.id));
+
+        // Сначала определяем общее количество тренировок, соответствующих критериям
+        const totalTrainingsCount = await this.trainingDatesRepository.count({
+            where: {
+                trainingId: {
+                    [Op.in]: trainingIds,
+                },
+                startDate: {
+                    [Op.gte]: startDate,
+                },
+            },
+        });
+
+        // Рассчитываем общее количество страниц
+        const totalPages = Math.ceil(totalTrainingsCount / recordsPerPage);
+
+        // Получаем текущие записи
+        const trainingDates = await this.trainingDatesRepository.findAll({
+            where: {
+                trainingId: {
+                    [Op.in]: trainingIds,
+                },
+                startDate: {
+                    [Op.gte]: startDate,
+                },
+            },
+            limit: recordsPerPage,
+            offset,
+            order: [['startDate', 'ASC']], // Используем startDate для сортировки
+            include: [
+                {
+                    model: Training,
+                    include: [
+                        { model: Group },
+                        { model: Location },
+                    ],
+                },
+            ],
+        });
+
+        // Группируем записи по дате
+        const groupedByDate = trainingDates.reduce((acc, trainingDate) => {
+            const date = new Date(trainingDate.startDate);
+
+            const dateKey = date.toLocaleDateString('de-DE', {
+                weekday: 'long',
+                day: '2-digit',
+                month: '2-digit',
+                year: '2-digit',
+            });
+
+            if (!acc[dateKey]) {
+                acc[dateKey] = {
+                    date: dateKey,
+                    trainings: [],
+                };
+            }
+
+            acc[dateKey].trainings.push(trainingDate);
+
+            return acc;
+        }, {});
+
+        return {
+            trainings: Object.values(groupedByDate),
+            totalPages, // Возвращаем общее количество страниц
+            currentPage: pageNumber,
+        };
+    }
+
+
+    // Получение тренровок на месяц для админа 
+    async getTrainingsForMonth(date: string) {
+        const startDate = new Date(date);
+        const year = startDate.getFullYear();
+        const month = startDate.getMonth();
+
+        // Определяем начало и конец месяца
+        const monthStart = new Date(year, month, 1);
+        const monthEnd = new Date(year, month + 1, 1);
+
+        // Выполняем запрос на получение тренировок за указанный месяц
+        const trainingDates = await this.trainingDatesRepository.findAll({
+            where: {
+                startDate: {
+                    [Op.gte]: monthStart,
+                    [Op.lt]: monthEnd,
+                },
+            },
+            attributes: ['id', 'startDate', 'endDate'], // Используем startDate и endDate
+            include: [
+                {
+                    model: Training,
+                    attributes: ['startTime', 'endTime'],
+                    include: [
+                        { model: Group, attributes: { exclude: ['createdAt', 'updatedAt'] } },
+                        { model: Location, attributes: { exclude: ['createdAt', 'updatedAt'] } },
+                    ],
+                },
+            ],
+            order: [['startDate', 'ASC']], // Сортировка по startDate
+        });
+
+        // Форматируем результат, чтобы вернуть нужные поля в виде плоского объекта
+        return trainingDates.map(trainingDate => ({
+            trainingDatesId: trainingDate.id,
+            startTime: trainingDate.startDate,
+            endTime: trainingDate.startDate,
+            group: trainingDate.training.group,
+            location: trainingDate.training.location,
         }));
     }
 
-    // Добавляем повторяемые тренировки в результат
-    private addRepeatedTrainings(result, training, startTime, endTime, requestedDate, interval, endDate) {
-        let currentStart = new Date(startTime);
-        let currentEnd = new Date(endTime);
 
-        // Цикл продолжается, пока текущая дата не превышает endDate
-        while (currentStart <= endDate) {
-            // Добавляем тренировку, если дата совпадает или позже requestedDate
-            if (currentStart >= requestedDate) {
-                result.push({
-                    ...training.toJSON(),
-                    startTime: new Date(currentStart),
-                    endTime: new Date(currentEnd),
-                });
-            }
+    // Получения записи конкретной тренировки 
+    async getTraining(trainingDatesId: number): Promise<any> {
+        const trainingDate = await this.trainingDatesRepository.findOne({
+            where: { id: trainingDatesId },
+            include: [
+                {
+                    model: Training,
+                    include: [
+                        { model: Group },
+                        { model: Location },
+                    ],
+                },
+            ],
+        });
 
-            // Увеличиваем текущую дату в зависимости от интервала повторения
-            if (interval === 'day') {
-                currentStart.setDate(currentStart.getDate() + 1);
-                currentEnd.setDate(currentEnd.getDate() + 1);
-            } else if (interval === 'week') {
-                currentStart.setDate(currentStart.getDate() + 7);
-                currentEnd.setDate(currentEnd.getDate() + 7);
-            } else if (interval === 'month') {
-                currentStart.setMonth(currentStart.getMonth() + 1);
-                currentEnd.setMonth(currentEnd.getMonth() + 1);
-            }
+        if (!trainingDate) {
+            throw new NotFoundException(`TrainingDates with ID ${trainingDatesId} not found`);
         }
+        /*   const date = trainingDate.startD; */
+        const training = trainingDate.training.toJSON(); // Преобразуем в простой объект
+
+        // Корректируем startTime и endTime
+        const trainingWithRightDates = {
+            ...training,
+            startTime: trainingDate.startDate,
+            endTime: trainingDate.endDate,
+        };
+
+        return trainingWithRightDates;
+
     }
 
+    //  Удаление одной записи по trainingDatesId из TrainingDates
+    async deleteTrainingDate(dto: DeleteTrainigDto): Promise<{ message: string }> {
+        const { trainingDatesId, reason } = dto;
+        const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId);
 
-    private isSameDay(date1: Date, date2: Date): boolean {
-        return (
-            date1.getFullYear() === date2.getFullYear() &&
-            date1.getMonth() === date2.getMonth() &&
-            date1.getDate() === date2.getDate()
+        if (!trainingDate) {
+            throw new NotFoundException(`TrainingDates with ID ${trainingDatesId} not found`);
+        }
+
+        await trainingDate.destroy();
+
+        //TODO нотификация whatsApp об отмене тренировки c выводом причины клиенту 
+
+        return { message: `TrainingDates with ID ${trainingDatesId} has been deleted` };
+    }
+
+    // Удаление всех записей по trainingId из TrainingDates и удаление самой Training
+    async deleteTrainingAndDates(dto: DeleteTrainigDto): Promise<{ message: string }> {
+        console.log(dto)
+        const { trainingDatesId, reason } = dto
+        const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId);
+
+        if (!trainingDate) {
+            throw new NotFoundException(`Training with ID ${trainingDatesId} not found`);
+        }
+        const trainingId = trainingDate.trainingId
+        console.log(trainingDate)
+        console.log(trainingId)
+        await this.trainingDatesRepository.destroy({
+            where: { trainingId },
+        });
+        await this.trainingRepository.destroy({
+            where: { id: trainingId },
+        });
+
+        // TODO нотификация whatsApp об отмене тренировки c выводом причины клиенту 
+
+        return { message: `Training and all related TrainingDates with ID ${trainingDatesId} have been deleted` };
+    }
+
+    // TODOEX Нужно сделать два маршрута 
+    // 1. Для обновления всех записей всех времен и тд. То есть если перенос всего времени
+
+    async update(dto: UpdateTrainingDto) {
+        const { trainingDatesId, startTime, endTime } = dto;
+        const trainigDates = await this.trainingDatesRepository.findByPk(trainingDatesId);
+
+        if (!trainigDates) {
+            throw new NotFoundException(`Training with ID ${trainingDatesId} not found`);
+        }
+
+        await this.trainingDatesRepository.update(
+            {
+                startDate: startTime, // Новое значение для startTime
+                endDate: endTime,
+            },
+            {
+                where: { id: trainingDatesId } // Условие фильтрации, которое определяет, какие записи обновить
+            }
         );
+        return { message: `Training and all related TrainingDates with ID ${trainingDatesId} have been updated` };
     }
 
+    async updateAll(dto: UpdateTrainingDto) {
+        const { trainingDatesId, startTime, endTime } = dto;
+        console.log(trainingDatesId, startTime, endTime)
+        const trainigDates = await this.trainingDatesRepository.findByPk(trainingDatesId);
+        
+        if (!trainigDates) {
+            throw new NotFoundException(`Training with ID ${trainingDatesId} not found`);
+        }
+        
+        await this.trainingDatesRepository.update(
+            {
+                startDate: startTime, // Новое значение для startTime
+                endDate: endTime,
+            },
+            {
+                where: { trainingId: trainigDates.trainingId } // Условие фильтрации, которое определяет, какие записи обновить
+            }
+        );
+        return { message: `Training and all related TrainingDates with ID ${trainigDates.trainingId} have been updated` };
 
-
-
-    private isWithinMonth(date: Date, startOfMonth: Date, endOfMonth: Date): boolean {
-        return date >= startOfMonth && date <= endOfMonth;
     }
 
+    adjustTrainingDates(trainingDate: Date, time: Date): Date {
+        const adjustedDate = new Date(
+            trainingDate.getFullYear(),
+            trainingDate.getMonth(),
+            trainingDate.getDate(),
+            time.getHours(),
+            time.getMinutes(),
+            time.getSeconds()
+        );
+        return adjustedDate;
+    }
 }
