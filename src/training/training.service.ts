@@ -10,6 +10,7 @@ import { Location } from 'src/location/location.model';
 import { TrainingDates } from './trainig-dates.model';
 import { DeleteTrainigDto } from './dto/delete-training';
 import { UpdateTrainingDto } from './dto/update-trainig.dto';
+import * as moment from 'moment-timezone';
 
 @Injectable()
 export class TrainingService {
@@ -17,10 +18,11 @@ export class TrainingService {
         @InjectModel(TrainingDates) private trainingDatesRepository: typeof TrainingDates,
     ) { }
 
+    // Проверка даты
     // Создание пробных тренировок
-    async createTraining(dto: CreateTrainingDto): Promise<Training> {
+    async createTraining(dto: CreateTrainingDto) {
         const { startTime, endTime, repeat_type, groupId, locationId } = dto;
-
+    
         // Создаем основную запись в Training
         const training = await this.trainingRepository.create({
             isTrail: true,
@@ -30,44 +32,48 @@ export class TrainingService {
             groupId,
             locationId,
         });
-
+    
         const trainingDates = [];
-        const currentStartDate = new Date(startTime);
-        const currentEndDate = new Date(endTime);
-        const finalDate = new Date(startTime);
-        finalDate.setMonth(finalDate.getMonth() + 6); // Полгода вперед
-
+    
+        // Устанавливаем начальные даты в Europe/Berlin, фиксируя время
+        let currentStartDate = moment.tz(startTime, 'Europe/Berlin').utcOffset('+01:00', true);
+        let currentEndDate = moment.tz(endTime, 'Europe/Berlin').utcOffset('+01:00', true);
+    
+        // Устанавливаем конечную дату на полгода вперед
+        const finalDate = currentStartDate.clone().add(6, 'months');
+    
         // Создаем записи в TrainingDates в зависимости от repeat_type
-        while (currentStartDate <= finalDate) {
+        while (currentStartDate.isSameOrBefore(finalDate)) {
             trainingDates.push({
                 trainingId: training.id,
-                startDate: new Date(currentStartDate), // Устанавливаем startDate
-                endDate: new Date(currentEndDate),     // Устанавливаем endDate
+                startDate: currentStartDate.clone().utc().toDate(), // Сохраняем в UTC для согласованности
+                endDate: currentEndDate.clone().utc().toDate(),     // Сохраняем в UTC для согласованности
             });
-
+    
             // Увеличиваем currentStartDate и currentEndDate в зависимости от типа повторения
             if (repeat_type === 1) {
                 // Ежедневно
-                currentStartDate.setDate(currentStartDate.getDate() + 1);
-                currentEndDate.setDate(currentEndDate.getDate() + 1);
+                currentStartDate.add(1, 'day');
+                currentEndDate.add(1, 'day');
             } else if (repeat_type === 2) {
                 // Еженедельно
-                currentStartDate.setDate(currentStartDate.getDate() + 7);
-                currentEndDate.setDate(currentEndDate.getDate() + 7);
+                currentStartDate.add(1, 'week');
+                currentEndDate.add(1, 'week');
             } else if (repeat_type === 3) {
                 // Ежемесячно
-                currentStartDate.setMonth(currentStartDate.getMonth() + 1);
-                currentEndDate.setMonth(currentEndDate.getMonth() + 1);
+                currentStartDate.add(1, 'month');
+                currentEndDate.add(1, 'month');
             }
         }
-
+    
         // Сохраняем записи в TrainingDates с полями startDate и endDate
         await this.trainingDatesRepository.bulkCreate(trainingDates);
-
+    
         return training;
     }
+    
 
-
+    // Переделать даты
     // Поиск пробных тренировок
     async searchTrainings(date: string, groupId: string, locationId: string, page: string) {
         const recordsPerPage = 10;
@@ -158,7 +164,7 @@ export class TrainingService {
 
     // Получение тренровок на месяц для админа 
     async getTrainingsForMonth(date: string) {
-        console.log(date);
+
         const startDate = new Date(date);
         const year = startDate.getFullYear();
         const month = startDate.getMonth();
@@ -166,7 +172,8 @@ export class TrainingService {
         // Определяем начало и конец месяца
         const monthStart = new Date(year, month, 1);
         const monthEnd = new Date(year, month + 1, 1);
-        console.log(monthStart, monthEnd)
+        console.log(monthStart, monthEnd);
+
         // Выполняем запрос на получение тренировок за указанный месяц
         const trainingDates = await this.trainingDatesRepository.findAll({
             where: {
@@ -175,7 +182,7 @@ export class TrainingService {
                     [Op.lt]: monthEnd,
                 },
             },
-            attributes: ['id', 'startDate', 'endDate'], // Используем startDate и endDate
+            attributes: ['id', 'startDate', 'endDate'],
             include: [
                 {
                     model: Training,
@@ -186,18 +193,26 @@ export class TrainingService {
                     ],
                 },
             ],
-            order: [['startDate', 'ASC']], // Сортировка по startDate
+            order: [['startDate', 'ASC']],
         });
+        console.log('dooooo')
+        // Преобразуем даты к Europe/Berlin перед возвратом клиенту
+        return trainingDates.map(trainingDate => {
 
-        // Форматируем результат, чтобы вернуть нужные поля в виде плоского объекта
-        return trainingDates.map(trainingDate => ({
-            trainingDatesId: trainingDate.id,
-            startTime: trainingDate.startDate,
-            endTime: trainingDate.endDate,
-            group: trainingDate.training.group,
-            location: trainingDate.training.location,
-        }));
+            console.log( "moment.tz" + trainingDate.startDate)
+            console.log( "moment.tz" + trainingDate.endDate)
+            console.log( "moment.tz" + moment.tz(trainingDate.startDate, 'Europe/Berlin').format())
+            console.log( "moment.tz" + moment.tz(trainingDate.endDate, 'Europe/Berlin').format())
+            return {
+                trainingDatesId: trainingDate.id,
+                startTime: moment.tz(trainingDate.startDate, 'Europe/Berlin').format(),  // Преобразование в Europe/Berlin
+                endTime: moment.tz(trainingDate.endDate, 'Europe/Berlin').format(),      // Преобразование в Europe/Berlin
+                group: trainingDate.training.group,
+                location: trainingDate.training.location,
+            }
+        })
     }
+
 
 
     // Получения записи конкретной тренировки 
@@ -297,11 +312,11 @@ export class TrainingService {
         const { trainingDatesId, startTime, endTime } = dto;
         console.log(trainingDatesId, startTime, endTime)
         const trainigDates = await this.trainingDatesRepository.findByPk(trainingDatesId);
-        
+
         if (!trainigDates) {
             throw new NotFoundException(`Training with ID ${trainingDatesId} not found`);
         }
-        
+
         await this.trainingDatesRepository.update(
             {
                 startDate: startTime, // Новое значение для startTime
