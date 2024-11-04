@@ -156,9 +156,9 @@ export class TrainingService {
         };
     }
 
-
     // Получение тренровок на месяц для админа 
     async getTrainingsForMonth(date: string) {
+        console.log(date);
         const startDate = new Date(date);
         const year = startDate.getFullYear();
         const month = startDate.getMonth();
@@ -166,7 +166,7 @@ export class TrainingService {
         // Определяем начало и конец месяца
         const monthStart = new Date(year, month, 1);
         const monthEnd = new Date(year, month + 1, 1);
-
+        console.log(monthStart, monthEnd)
         // Выполняем запрос на получение тренировок за указанный месяц
         const trainingDates = await this.trainingDatesRepository.findAll({
             where: {
@@ -193,7 +193,7 @@ export class TrainingService {
         return trainingDates.map(trainingDate => ({
             trainingDatesId: trainingDate.id,
             startTime: trainingDate.startDate,
-            endTime: trainingDate.startDate,
+            endTime: trainingDate.endDate,
             group: trainingDate.training.group,
             location: trainingDate.training.location,
         }));
@@ -272,9 +272,6 @@ export class TrainingService {
         return { message: `Training and all related TrainingDates with ID ${trainingDatesId} have been deleted` };
     }
 
-    // TODOEX Нужно сделать два маршрута 
-    // 1. Для обновления всех записей всех времен и тд. То есть если перенос всего времени
-
     async update(dto: UpdateTrainingDto) {
         const { trainingDatesId, startTime, endTime } = dto;
         const trainigDates = await this.trainingDatesRepository.findByPk(trainingDatesId);
@@ -295,6 +292,7 @@ export class TrainingService {
         return { message: `Training and all related TrainingDates with ID ${trainingDatesId} have been updated` };
     }
 
+    // TODO p1 Пределать что бы обновлялось только время, без даты!!!
     async updateAll(dto: UpdateTrainingDto) {
         const { trainingDatesId, startTime, endTime } = dto;
         console.log(trainingDatesId, startTime, endTime)
