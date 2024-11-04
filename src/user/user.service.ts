@@ -49,13 +49,13 @@ export class UserService {
             if (!user) {
                 throw new HttpException('Benutzername oder Passwort ist ungültig', HttpStatus.NOT_FOUND);
             }
-
+            console.log(1111111111)
             const isPassEquals = await compare(dto.password, user.password);
 
             if (!isPassEquals) {
                 throw new HttpException('Benutzername oder Passwort ist ungültig', HttpStatus.BAD_REQUEST);
             }
-
+            console.log(22222222222)
             const payload: PayloadDto = {
                 userId: user.id,
                 role: user.role,

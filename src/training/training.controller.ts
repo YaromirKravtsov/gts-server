@@ -23,7 +23,7 @@ export class TrainingController {
     @ApiOperation({ summary: 'Create a new training' })
     @ApiResponse({ status: 201, description: 'The training has been successfully created.', type: Training })
     @ApiBody({ type: CreateTrainingDto })
-    async create(@Body() createTrainingDto: CreateTrainingDto): Promise<Training> {
+    async create(@Body() createTrainingDto: CreateTrainingDto)/* : Promise<Training>  */{
         return this.trainingService.createTraining(createTrainingDto);
     }
 
