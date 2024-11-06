@@ -7,7 +7,7 @@ import { Op } from 'sequelize';
 import { Group } from 'src/group/group.model';
 import { Location } from 'src/location/location.model';
 import { TrainingDates } from 'src/training/trainig-dates.model';
-
+import * as moment from 'moment-timezone';
 @Injectable()
 export class ApplicationService {
     constructor(@InjectModel(Application) private applicationRepository: typeof Application,
@@ -63,10 +63,11 @@ export class ApplicationService {
        
         // Форматируем результат в нужный вид
         return applications.map(application => ({
+            id: application.id,
             trainingDatesId: application.trainingDatesId,
             playerName: application.playerName,
-            startDate: application.trainingDates.startDate,
-            endDate: application.trainingDates.endDate,
+            startDate: moment.tz(application.trainingDates.startDate, 'Europe/Berlin').format(),
+            endDate: moment.tz(application.trainingDates.endDate, 'Europe/Berlin').format() ,
             location: application.trainingDates.training.location,
             group: application.trainingDates.training.group,
         }));
@@ -76,7 +77,7 @@ export class ApplicationService {
     async geApplication(id: number) {
         console.log(id);
 
-        const applications = await this.applicationRepository.findAll({
+        const application = await this.applicationRepository.findOne({
             where: {id},
             include: [
                 {
@@ -97,17 +98,16 @@ export class ApplicationService {
         });
        
         // Форматируем результат в нужный вид
-        return applications.map(application => (
-            {
+        return {
             trainingDatesId: application.trainingDatesId,
             playerName: application.playerName,
             playerComment:application.playerComment ,
             playerPhone: application.playerPhone,
-            startDate: application.trainingDates.startDate,
-            endDate: application.trainingDates.endDate,
+            startDate: moment.tz(application.trainingDates.startDate, 'Europe/Berlin').format(),
+            endDate: moment.tz(application.trainingDates.endDate, 'Europe/Berlin').format() ,
             location: application.trainingDates.training.location,
             group: application.trainingDates.training.group,
-        }));
+        }
     }
     
     // 
