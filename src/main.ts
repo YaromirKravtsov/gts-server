@@ -12,13 +12,30 @@ async function bootstrap() {
 
 
   const config = new DocumentBuilder()
-    .setTitle('My API')
-    .setDescription('API documentation')
-    .setVersion('1.0')
-    .addBearerAuth() // Добавляем Bearer Auth
-    .build();
+  .setTitle('My API')
+  .setDescription('API documentation')
+  .setVersion('1.0')
+  .addBearerAuth(
+    {
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      in: 'header', // Указываем, что токен должен быть в заголовке
+    },
+    'bearer', // Уникальный идентификатор схемы авторизации
+  )
+  .build();
+
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  const options = {
+    swaggerOptions: {
+        persistAuthorization: true, // сохраняет авторизацию между перезагрузками страницы
+    },
+};
+
+SwaggerModule.setup('api/docs', app, document, options);
+
+
 
 
 
