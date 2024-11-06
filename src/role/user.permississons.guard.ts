@@ -13,7 +13,7 @@ export class UserPermissionsGuard implements CanActivate{
  
             const authHeader = req.headers.authorization;
             const userId = req.params.userId ||req.body.userId;
-
+            
             const baser = authHeader.split(' ')[0];
             const token = authHeader.split(' ')[1];
         
