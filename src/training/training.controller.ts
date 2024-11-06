@@ -74,14 +74,15 @@ export class TrainingController {
     /**
      * Удаление одной записи тренировки по `trainingDatesId`
      */
-    @Roles(['admin'])
-    @UseGuards(RoleGuard)
-    @Delete('/delete-training-date')
+/*     @Roles(['admin'])
+    @UseGuards(RoleGuard) */
+    @Delete('/:id')
     @ApiOperation({ summary: 'Delete a single training date by trainingDatesId' })
+    @ApiParam({ name: 'id', description: 'ID of the training-dates' })
     @ApiBody({ type: DeleteTrainigDto })
     @ApiResponse({ status: 200, description: 'The training date has been deleted successfully.' })
-    async deleteTrainingDate(@Body() dto: DeleteTrainigDto) {
-        return await this.trainingService.deleteTrainingDate(dto);
+    async deleteTrainingDate(@Body() dto: DeleteTrainigDto,@Param() { id } ) {
+        return await this.trainingService.deleteTrainingDate({...dto, trainingDatesId:id });
     }
 
     /**
@@ -89,7 +90,7 @@ export class TrainingController {
      */
 /*     @Roles(['admin'])
     @UseGuards(RoleGuard) */
-    @Delete('/delete-training-and-dates')
+    @Delete('/')
     @ApiOperation({ summary: 'Delete all training dates and the training itself by trainingDatesId' })
     @ApiBody({ type: DeleteTrainigDto })
     @ApiResponse({ status: 200, description: 'The training and all related dates have been deleted successfully.' })
@@ -100,22 +101,23 @@ export class TrainingController {
     /**
      * Обновление одной тренировки
      */
-    @Roles(['admin'])
-    @UseGuards(RoleGuard)
-    @Put('/one')
+/*     @Roles(['admin'])
+    @UseGuards(RoleGuard) */
+    @Put('/:id')
     @ApiOperation({ summary: 'Update a single training' })
+    @ApiParam({ name: 'id', description: 'ID of the training' })
     @ApiBody({ type: UpdateTrainingDto })
     @ApiResponse({ status: 200, description: 'The training has been updated successfully.' })
-    async update(@Body() dto: UpdateTrainingDto) {
-        return await this.trainingService.update(dto);
+    async update(@Body() dto: UpdateTrainingDto,@Param() { id } ) {
+        return await this.trainingService.update({...dto, trainingDatesId:id });
     }
 
     /**
      * Обновление всех тренировок с аналогичными характеристиками
      */
-    @Roles(['admin'])
-    @UseGuards(RoleGuard)
-    @Put('/all')
+/*     @Roles(['admin']) */
+/*     @UseGuards(RoleGuard) */
+    @Put('/')
     @ApiOperation({ summary: 'Update all trainings with similar attributes' })
     @ApiBody({ type: UpdateTrainingDto })
     @ApiResponse({ status: 200, description: 'All related trainings have been updated successfully.' })

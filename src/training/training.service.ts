@@ -22,7 +22,7 @@ export class TrainingService {
     // Создание пробных тренировок
     async createTraining(dto: CreateTrainingDto) {
         const { startTime, endTime, repeat_type, groupId, locationId } = dto;
-    
+
         // Создаем основную запись в Training
         const training = await this.trainingRepository.create({
             isTrail: true,
@@ -32,16 +32,16 @@ export class TrainingService {
             groupId,
             locationId,
         });
-    
+
         const trainingDates = [];
-    
+
         // Устанавливаем начальные даты в Europe/Berlin, фиксируя время
         let currentStartDate = moment.tz(startTime, 'Europe/Berlin').utcOffset('+01:00', true);
         let currentEndDate = moment.tz(endTime, 'Europe/Berlin').utcOffset('+01:00', true);
-    
+
         // Устанавливаем конечную дату на полгода вперед
         const finalDate = currentStartDate.clone().add(6, 'months');
-    
+
         // Создаем записи в TrainingDates в зависимости от repeat_type
         while (currentStartDate.isSameOrBefore(finalDate)) {
             trainingDates.push({
@@ -49,7 +49,7 @@ export class TrainingService {
                 startDate: currentStartDate.clone().utc().toDate(), // Сохраняем в UTC для согласованности
                 endDate: currentEndDate.clone().utc().toDate(),     // Сохраняем в UTC для согласованности
             });
-    
+
             // Увеличиваем currentStartDate и currentEndDate в зависимости от типа повторения
             if (repeat_type === 1) {
                 // Ежедневно
@@ -65,13 +65,13 @@ export class TrainingService {
                 currentEndDate.add(1, 'month');
             }
         }
-    
+
         // Сохраняем записи в TrainingDates с полями startDate и endDate
         await this.trainingDatesRepository.bulkCreate(trainingDates);
-    
+
         return training;
     }
-    
+
 
     // Переделать даты
     // Поиск пробных тренировок
@@ -150,7 +150,18 @@ export class TrainingService {
                 };
             }
 
-            acc[dateKey].trainings.push(trainingDate);
+
+            const trainingJson = trainingDate.training.toJSON(); // Преобразуем в простой объект
+
+            // Корректируем startTime и endTime
+            const trainingWithRightDates = {
+                ...trainingJson,
+                id: trainingDate.id,
+                startTime: moment.tz(trainingDate.startDate, 'Europe/Berlin').format(),
+                endTime: moment.tz(trainingDate.endDate, 'Europe/Berlin').format(),
+            };
+
+            acc[dateKey].trainings.push(trainingWithRightDates);
 
             return acc;
         }, {});
@@ -199,10 +210,10 @@ export class TrainingService {
         // Преобразуем даты к Europe/Berlin перед возвратом клиенту
         return trainingDates.map(trainingDate => {
 
-            console.log( "moment.tz" + trainingDate.startDate)
-            console.log( "moment.tz" + trainingDate.endDate)
-            console.log( "moment.tz" + moment.tz(trainingDate.startDate, 'Europe/Berlin').format())
-            console.log( "moment.tz" + moment.tz(trainingDate.endDate, 'Europe/Berlin').format())
+            console.log("no" + trainingDate.startDate)
+            console.log("no" + trainingDate.endDate)
+            console.log("moment.tz" + moment.tz(trainingDate.startDate, 'Europe/Berlin').format())
+            console.log("moment.tz" + moment.tz(trainingDate.endDate, 'Europe/Berlin').format())
             return {
                 trainingDatesId: trainingDate.id,
                 startTime: moment.tz(trainingDate.startDate, 'Europe/Berlin').format(),  // Преобразование в Europe/Berlin
@@ -212,8 +223,6 @@ export class TrainingService {
             }
         })
     }
-
-
 
     // Получения записи конкретной тренировки 
     async getTraining(trainingDatesId: number): Promise<any> {
@@ -239,8 +248,8 @@ export class TrainingService {
         // Корректируем startTime и endTime
         const trainingWithRightDates = {
             ...training,
-            startTime: trainingDate.startDate,
-            endTime: trainingDate.endDate,
+            startTime: moment.tz(trainingDate.startDate, 'Europe/Berlin').format(),
+            endTime: moment.tz(trainingDate.endDate, 'Europe/Berlin').format(),
         };
 
         return trainingWithRightDates;
@@ -249,6 +258,7 @@ export class TrainingService {
 
     //  Удаление одной записи по trainingDatesId из TrainingDates
     async deleteTrainingDate(dto: DeleteTrainigDto): Promise<{ message: string }> {
+        console.log(dto)
         const { trainingDatesId, reason } = dto;
         const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId);
 
@@ -310,25 +320,66 @@ export class TrainingService {
     // TODO p1 Пределать что бы обновлялось только время, без даты!!!
     async updateAll(dto: UpdateTrainingDto) {
         const { trainingDatesId, startTime, endTime } = dto;
-        console.log(trainingDatesId, startTime, endTime)
-        const trainigDates = await this.trainingDatesRepository.findByPk(trainingDatesId);
-
-        if (!trainigDates) {
-            throw new NotFoundException(`Training with ID ${trainingDatesId} not found`);
+    
+        // Находим существующую запись в TrainingDates
+        const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId);
+        if (!trainingDate) {
+            throw new NotFoundException(`TrainingDate with ID ${trainingDatesId} not found`);
         }
-
-        await this.trainingDatesRepository.update(
-            {
-                startDate: startTime, // Новое значение для startTime
-                endDate: endTime,
-            },
-            {
-                where: { trainingId: trainigDates.trainingId } // Условие фильтрации, которое определяет, какие записи обновить
+    
+        // Находим основную запись в Training, чтобы получить repeat_type
+        const training = await this.trainingRepository.findByPk(trainingDate.trainingId);
+        if (!training) {
+            throw new NotFoundException(`Training with ID ${trainingDate.trainingId} not found`);
+        }
+    
+        const { repeatType } = training;
+    
+        // Устанавливаем начальные и конечные даты для обновления
+        let currentStartDate = moment.tz(startTime, 'Europe/Berlin').utcOffset('+01:00', true);
+        let currentEndDate = moment.tz(endTime, 'Europe/Berlin').utcOffset('+01:00', true);
+    
+        // Конечная дата для обновления (например, полгода вперед)
+        const finalDate = currentStartDate.clone().add(6, 'months');
+    
+        // Массив для обновленных дат
+        const updatedTrainingDates = [];
+    
+        // Обновляем расписание в зависимости от типа повторения (repeatType)
+        while (currentStartDate.isSameOrBefore(finalDate)) {
+            updatedTrainingDates.push({
+                trainingId: training.id,
+                startDate: currentStartDate.clone().utc().toDate(),
+                endDate: currentEndDate.clone().utc().toDate(),
+            });
+    
+            // Увеличиваем дату в зависимости от типа повторения
+            if (repeatType === 1) {
+                // Ежедневно
+                currentStartDate.add(1, 'day');
+                currentEndDate.add(1, 'day');
+            } else if (repeatType === 2) {
+                // Еженедельно
+                currentStartDate.add(1, 'week');
+                currentEndDate.add(1, 'week');
+            } else if (repeatType === 3) {
+                // Ежемесячно
+                currentStartDate.add(1, 'month');
+                currentEndDate.add(1, 'month');
             }
-        );
-        return { message: `Training and all related TrainingDates with ID ${trainigDates.trainingId} have been updated` };
-
+        }
+    
+        // Удаляем старые записи в TrainingDates, связанные с trainingId
+        await this.trainingDatesRepository.destroy({
+            where: { trainingId: training.id }
+        });
+    
+        // Сохраняем новые записи в TrainingDates
+        await this.trainingDatesRepository.bulkCreate(updatedTrainingDates);
+    
+        return { message: `Training and all related TrainingDates with ID ${training.id} have been updated based on repeatType` };
     }
+    
 
     adjustTrainingDates(trainingDate: Date, time: Date): Date {
         const adjustedDate = new Date(
