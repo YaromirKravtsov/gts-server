@@ -87,8 +87,8 @@ export class TrainingController {
     /**
      * Удаление всех записей тренировки и самой тренировки по `trainingDatesId`
      */
-    @Roles(['admin'])
-    @UseGuards(RoleGuard)
+/*     @Roles(['admin'])
+    @UseGuards(RoleGuard) */
     @Delete('/delete-training-and-dates')
     @ApiOperation({ summary: 'Delete all training dates and the training itself by trainingDatesId' })
     @ApiBody({ type: DeleteTrainigDto })
