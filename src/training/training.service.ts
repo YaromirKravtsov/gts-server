@@ -22,7 +22,7 @@ export class TrainingService {
     // Создание пробных тренировок
     async createTraining(dto: CreateTrainingDto) {
         const { startTime, endTime, repeat_type, groupId, locationId } = dto;
-
+    
         // Создаем основную запись в Training
         const training = await this.trainingRepository.create({
             isTrail: true,
@@ -32,16 +32,16 @@ export class TrainingService {
             groupId,
             locationId,
         });
-
+    
         const trainingDates = [];
-
+    
         // Устанавливаем начальные даты в Europe/Berlin, фиксируя время
         let currentStartDate = moment.tz(startTime, 'Europe/Berlin').utcOffset('+01:00', true);
         let currentEndDate = moment.tz(endTime, 'Europe/Berlin').utcOffset('+01:00', true);
-
+    
         // Устанавливаем конечную дату на полгода вперед
         const finalDate = currentStartDate.clone().add(6, 'months');
-
+    
         // Создаем записи в TrainingDates в зависимости от repeat_type
         while (currentStartDate.isSameOrBefore(finalDate)) {
             trainingDates.push({
@@ -49,7 +49,12 @@ export class TrainingService {
                 startDate: currentStartDate.clone().utc().toDate(), // Сохраняем в UTC для согласованности
                 endDate: currentEndDate.clone().utc().toDate(),     // Сохраняем в UTC для согласованности
             });
-
+    
+            // Если repeat_type === 4, создаем только одну запись и выходим из цикла
+            if (repeat_type === 4) {
+                break;
+            }
+    
             // Увеличиваем currentStartDate и currentEndDate в зависимости от типа повторения
             if (repeat_type === 1) {
                 // Ежедневно
@@ -65,12 +70,13 @@ export class TrainingService {
                 currentEndDate.add(1, 'month');
             }
         }
-
+    
         // Сохраняем записи в TrainingDates с полями startDate и endDate
         await this.trainingDatesRepository.bulkCreate(trainingDates);
-
+    
         return training;
     }
+    
 
 
     // Переделать даты
@@ -260,6 +266,7 @@ export class TrainingService {
     async deleteTrainingDate(dto: DeleteTrainigDto): Promise<{ message: string }> {
         console.log(dto)
         const { trainingDatesId, reason } = dto;
+        console.log(reason)
         const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId);
 
         if (!trainingDate) {
