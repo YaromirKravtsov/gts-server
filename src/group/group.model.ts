@@ -8,7 +8,9 @@ import { Training } from "src/training/training.model";
 interface GroupCreationAttrs{
     groupName: string,
     groupUrl: string,
-    color:string
+    color:string;
+    visible: boolean;
+    order: number
 }
 @Table({tableName:'group',createdAt:false, updatedAt:false})
 export class Group extends Model<Group,GroupCreationAttrs>{
@@ -25,6 +27,16 @@ export class Group extends Model<Group,GroupCreationAttrs>{
     @Column({type:DataType.STRING, allowNull:false})
     color:string;
 
+    @Column({type:DataType.BOOLEAN, allowNull:false})
+    visible:boolean;
+
+    @Column({type:DataType.INTEGER, allowNull:false})
+    order:number;
+
     @HasMany(()=> Training)
     Trainings: Training[];
+
+
+    
+
 }
