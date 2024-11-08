@@ -30,10 +30,10 @@ import { TrainingDates } from './training/trainig-dates.model';
       host: process.env.MYSQL_HOST,
       port: Number(process.env.MYSQL_PORT),
       username: 'root',
-      password:'root',
+      password:'',
       database: process.env.MYSQL_DB,
       models: [User,Token, Group, Location, Training, Application,TrainingDates],
-      autoLoadModels:  true
+      autoLoadModels:  false
     }),
     UserModule,
     TokenModule,
