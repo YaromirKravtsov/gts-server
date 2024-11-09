@@ -58,10 +58,9 @@ export class GroupController {
     // Обновление поля `visible`
     @ApiOperation({ summary: 'Update group visibility' })
     @ApiParam({ name: 'id', type: Number, description: 'ID группы' })
-    @ApiBody({ schema: { example: { visible: true } }, description: 'Устанавливает видимость группы' })
     @Put(':id/visible')
-    async updateVisible(@Param('id') id: number, @Body('visible') visible: boolean) {
-        return this.groupService.updateVisible(id, visible);
+    async updateVisible(@Param('id') id: number) {
+        return this.groupService.updateVisible(id);
     }
 
     // Обновление поля `order`
