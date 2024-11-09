@@ -33,7 +33,7 @@ export class LocationService {
     async getAll(visible?: boolean) {
         try {
             const whereCondition = visible !== undefined ? { visible: Boolean(visible) } : {};
-            const locations = await this.locationRepository.findAll({ where: whereCondition });
+            const locations = await this.locationRepository.findAll({ where: whereCondition, order: [['order', 'ASC']],  });
             return locations;
         } catch (error) {
             throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);

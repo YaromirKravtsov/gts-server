@@ -21,7 +21,7 @@ export class Group extends Model<Group,GroupCreationAttrs>{
     @Column({type:DataType.STRING, allowNull:false})
     groupName: string
 
-    @Column({type:DataType.STRING, allowNull:true})
+    @Column({type:DataType.TEXT, allowNull:true})
     groupUrl: string;
 
     @Column({type:DataType.STRING, allowNull:false})
