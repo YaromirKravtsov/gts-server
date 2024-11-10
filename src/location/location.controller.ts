@@ -49,9 +49,8 @@ export class LocationController {
     @Put(':id/visible')
     @ApiOperation({ summary: 'Update location visibility' })
     @ApiParam({ name: 'id', type: Number, description: 'ID of the location' })
-    @ApiBody({ schema: { example: { visible: true } } })
-    async updateVisible(@Param('id') id: number, @Body('visible') visible: boolean) {
-        return await this.locationService.updateVisible(id, visible);
+    async updateVisible(@Param('id') id: number) {
+        return await this.locationService.updateVisible(id);
     }
 
     @Put(':id/order')

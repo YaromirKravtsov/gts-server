@@ -11,13 +11,4 @@ export class CreateLocationDto {
     @IsString()
     locationUrl?: string;
 
-    @ApiProperty({ description: 'Видимость локации', default: true })
-    @IsOptional()
-    @IsBoolean()
-    visible?: boolean;
-
-    @ApiProperty({ description: 'Порядок отображения локации', default: 1 })
-    @IsOptional()
-    @IsBoolean()
-    order?: boolean;
 }
