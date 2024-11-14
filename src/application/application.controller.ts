@@ -1,9 +1,10 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpException, HttpStatus, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
 import { ApplicationService } from './application.service';
 import { Roles } from 'src/role/roles-auth-decorator';
 import { RoleGuard } from 'src/role/role.gurard';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { Response } from 'express';
 
 @ApiTags('Applications') // Группирует все маршруты контроллера в разделе "Applications" в Swagger
 @Controller('applications')
@@ -60,4 +61,27 @@ export class ApplicationController {
     async geApplication(@Param() { id }) {
         return this.applicationService.geApplication(id);
     }
+
+     /**
+     * Удалить заявку ID
+     */
+     @Delete()
+     @ApiOperation({ summary: 'Удалить заявку по ID, имени и телефону игрока' })
+     @ApiQuery({ name: 'id', type: String, description: 'ID заявки', required: true })
+     @ApiQuery({ name: 'playerName', type: String, description: 'Имя игрока', required: true })
+     @ApiQuery({ name: 'playerPhone', type: String, description: 'Телефон игрока', required: true })/* 
+     @ApiResponse({ status: 200, description: 'Заявка успешно получена' })
+     @ApiResponse({ status: 404, description: 'Заявка не найдена' }) */
+     async delete(
+       @Query('id') id: string,
+       @Query('playerName') playerName: string,
+       @Query('playerPhone') playerPhone: string
+     ) {
+        try {
+            return await this.applicationService.deleteApplication(id, playerName, playerPhone);
+        } catch (error) {
+            throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+       
+     }
 }
