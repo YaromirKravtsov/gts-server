@@ -18,7 +18,7 @@ export class Location extends Model<Location,LocationCreationAttrs>{
     @Column({type:DataType.STRING, allowNull:false})
     locationName: string
 
-    @Column({type:DataType.STRING, allowNull:true})
+    @Column({type:DataType.TEXT, allowNull:true})
     locationUrl: string;
 
     @Column({type:DataType.BOOLEAN, allowNull:false})

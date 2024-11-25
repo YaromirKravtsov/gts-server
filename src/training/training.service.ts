@@ -28,7 +28,7 @@ export class TrainingService {
     // Создание пробных тренировок
     async createTraining(dto: CreateTrainingDto) {
         const { startTime, endTime, repeat_type, groupId, locationId } = dto;
-    
+
         // Создаем основную запись в Training
         const training = await this.trainingRepository.create({
             isTrail: true,
@@ -38,16 +38,16 @@ export class TrainingService {
             groupId,
             locationId,
         });
-    
+
         const trainingDates = [];
-    
+
         // Устанавливаем начальные даты в Europe/Berlin, фиксируя время
         let currentStartDate = moment.tz(startTime, 'Europe/Berlin').utcOffset('+01:00', true);
         let currentEndDate = moment.tz(endTime, 'Europe/Berlin').utcOffset('+01:00', true);
-    
+
         // Устанавливаем конечную дату на полгода вперед
         const finalDate = currentStartDate.clone().add(6, 'months');
-    
+
         // Создаем записи в TrainingDates в зависимости от repeat_type
         while (currentStartDate.isSameOrBefore(finalDate)) {
             trainingDates.push({
@@ -55,12 +55,12 @@ export class TrainingService {
                 startDate: currentStartDate.clone().utc().toDate(), // Сохраняем в UTC для согласованности
                 endDate: currentEndDate.clone().utc().toDate(),     // Сохраняем в UTC для согласованности
             });
-    
+
             // Если repeat_type === 4, создаем только одну запись и выходим из цикла
             if (repeat_type === 4) {
                 break;
             }
-    
+
             // Увеличиваем currentStartDate и currentEndDate в зависимости от типа повторения
             if (repeat_type === 1) {
                 // Ежедневно
@@ -76,13 +76,13 @@ export class TrainingService {
                 currentEndDate.add(1, 'month');
             }
         }
-    
+
         // Сохраняем записи в TrainingDates с полями startDate и endDate
         await this.trainingDatesRepository.bulkCreate(trainingDates);
-    
+
         return training;
     }
-    
+
 
 
     // Переделать даты
@@ -248,6 +248,9 @@ export class TrainingService {
                         { model: Location },
                     ],
                 },
+                {
+                    model: Application, // Включаем связанные заявки
+                },
             ],
         });
 
@@ -262,6 +265,7 @@ export class TrainingService {
             ...training,
             startTime: moment.tz(trainingDate.startDate, 'Europe/Berlin').format(),
             endTime: moment.tz(trainingDate.endDate, 'Europe/Berlin').format(),
+            applications: trainingDate.applications || [], // Добавляем массив заявок
         };
 
         return trainingWithRightDates;
@@ -272,64 +276,16 @@ export class TrainingService {
     async deleteTrainingDate(dto: DeleteTrainigDto): Promise<{ message: string }> {
         const { trainingDatesId, reason } = dto;
         const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId);
-    
+
         // Проверка существования тренировки
         if (!trainingDate) {
-          throw new NotFoundException(`TrainingDates with ID ${trainingDatesId} not found`);
+            throw new NotFoundException(`TrainingDates with ID ${trainingDatesId} not found`);
         }
-    
+
         // Форматируем дату тренировки
         const date = this.formatTrainingDate(trainingDate.startDate, trainingDate.endDate);
         const training = await this.getTraining(trainingDatesId); // Получаем детали тренировки
-    
-        // Сообщение об отмене тренировки для каждого игрока
-        const cancellationMessage = [
-            `Die Trainingseinheit, die am ${date} stattgefunden hätte, wurde leider abgesagt.\n`,
-            `Der Trainingsort war geplant als: ${training.location.locationName}.\n`,
-            `Die Gruppe wäre gewesen: ${training.group.groupName}.\n`,
-            `Grund der Absage:\n ${reason}.`
-          ].join(' ').trim();
-          
-    
-        // Удаление всех заявок, связанных с тренировкой
-        const applications = await this.applicationService.getApplicationsByTrainingDateId(trainingDatesId);
-        for (const application of applications) {
-          const formattedPhone = this.formatPhoneNumber(application.playerPhone);
-    
-          setTimeout(async () => {
-            try {
-              await this.whatsAppService.sendMessage(formattedPhone + '@c.us', cancellationMessage);
-            } catch (error) {
-              console.error('Ошибка при отправке сообщения в WhatsApp:', error);
-            }
-          }, 0);
-        }
-    
-        // Удаляем саму тренировку
-        await trainingDate.destroy();
-    
-        return { message: `TrainingDates with ID ${trainingDatesId} has been deleted` };
-      }
-    
 
-    // Удаление всех записей по trainingId из TrainingDates и удаление самой Training
-    async deleteTrainingAndDates(dto: DeleteTrainigDto): Promise<{ message: string }> {
-        const { trainingDatesId, reason } = dto;
-        const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId);
-    
-        // Проверка существования тренировки
-        if (!trainingDate) {
-            console.log('Не найдено')
-            throw new NotFoundException(`Training with ID ${trainingDatesId} not found`);
-        }
-    
-        // Получаем ID основной тренировки
-        const trainingId = trainingDate.trainingId;
-    
-        // Форматируем дату тренировки для уведомления
-        const date = this.formatTrainingDate(trainingDate.startDate, trainingDate.endDate);
-        const training = await this.getTraining(trainingDatesId); // Получаем детали тренировки
-        
         // Сообщение об отмене тренировки для каждого игрока
         const cancellationMessage = [
             `Die Trainingseinheit, die am ${date} stattgefunden hätte, wurde leider abgesagt.\n`,
@@ -337,58 +293,114 @@ export class TrainingService {
             `Die Gruppe wäre gewesen: ${training.group.groupName}.\n`,
             `Grund der Absage:\n ${reason}.`
         ].join(' ').trim();
-    
-        // Получаем все даты тренировок, связанные с тренингом
+
+        // Удаление всех заявок, связанных с тренировкой
+        const applications = await this.applicationService.getApplicationsByTrainingDateId(trainingDatesId);
+
+        const operations = applications.map(async (application) => {
+            const formattedPhone = this.formatPhoneNumber(application.playerPhone);
+
+            // Отправка сообщения игроку
+            try {
+                await this.whatsAppService.sendMessage(formattedPhone + '@c.us', cancellationMessage);
+            } catch (error) {
+                console.error(`Ошибка при отправке сообщения игроку ${application.playerPhone}:`, error);
+            }
+
+            // Удаление заявки
+            await this.applicationService.destroyApplication(application.id);
+        });
+
+        // Ждем выполнения всех операций
+        await Promise.all(operations);
+
+        // Удаляем саму тренировку
+        await trainingDate.destroy();
+
+        return { message: `TrainingDates with ID ${trainingDatesId} has been deleted` };
+    }
+
+
+
+    // Удаление всех записей по trainingId из TrainingDates и удаление самой Training
+    async deleteTrainingAndDates(dto: DeleteTrainigDto): Promise<{ message: string }> {
+        const { trainingDatesId, reason } = dto;
+        const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId);
+
+        if (!trainingDate) {
+            throw new NotFoundException(`Training with ID ${trainingDatesId} not found`);
+        }
+
+        const trainingId = trainingDate.trainingId;
+
+        const date = this.formatTrainingDate(trainingDate.startDate, trainingDate.endDate);
+        const training = await this.getTraining(trainingDatesId);
+
+        const cancellationMessage = [
+            `Die Trainingseinheit, die am ${date} stattgefunden hätte, wurde leider abgesagt.\n`,
+            `Der Trainingsort war geplant als: ${training.location.locationName}.\n`,
+            `Die Gruppe wäre gewesen: ${training.group.groupName}.\n`,
+            `Grund der Absage:\n ${reason}.`
+        ].join(' ').trim();
+
         const trainingDates = await this.trainingDatesRepository.findAll({
             where: { trainingId },
             include: [Application], // Загружаем заявки на каждую дату тренировки
         });
-    
-        // Отправляем уведомления каждому участнику на каждой дате тренировки
+
+
+        const currentTimeBerlin = moment().tz('Europe/Berlin');
+
         for (const date of trainingDates) {
+            if (moment(date.startDate).isBefore(currentTimeBerlin)) {
+                console.log(`Пропущено: дата тренировки ${date.startDate} уже прошла.`);
+                continue; // Пропускаем обработку старых тренировок
+            }
+
             for (const application of date.applications) {
                 const formattedPhone = this.formatPhoneNumber(application.playerPhone);
-    
-                setTimeout(async () => {
-                    try {
-                        await this.whatsAppService.sendMessage(formattedPhone + '@c.us', cancellationMessage);
-                    } catch (error) {
-                        console.error('Ошибка при отправке сообщения в WhatsApp:', error);
-                    }
-                }, 0);
+
+                try {
+                    await this.whatsAppService.sendMessage(
+                        `${formattedPhone}@c.us`,
+                        cancellationMessage
+                    );
+                } catch (error) {
+                    console.error('Ошибка при отправке сообщения в WhatsApp:', error);
+                }
+
+                await this.applicationService.destroyApplication(application.id);
             }
         }
-    
-        // Удаляем все даты тренировок, связанные с тренингом
+
         await this.trainingDatesRepository.destroy({
             where: { trainingId },
         });
-    
-        // Удаляем сам тренинг
+
         await this.trainingRepository.destroy({
             where: { id: trainingId },
         });
-    
+
         return { message: `Training and all related TrainingDates with ID ${trainingDatesId} have been deleted` };
     }
-    
-    
+
+
 
     async update(dto: UpdateTrainingDto): Promise<{ message: string }> {
         const { trainingDatesId, startTime, endTime } = dto;
         const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId, {
             include: [Application], // Загружаем заявки, связанные с датой тренировки
         });
-    
+
         // Проверка существования даты тренировки
         if (!trainingDate) {
             throw new NotFoundException(`Training with ID ${trainingDatesId} not found`);
         }
-    
+
         // Получаем основную тренировку и форматируем новую дату
         const training = await this.getTraining(dto.trainingDatesId); // Получаем детали тренировки
         const newDate = this.formatTrainingDate(startTime, endTime);
-    
+
         // Сообщение о переносе тренировки
         const rescheduleMessage = [
             `Die Trainingseinheit wurde auf einen neuen Zeitpunkt verlegt.\n`,
@@ -397,7 +409,7 @@ export class TrainingService {
             `*Gruppe:* ${training.group.groupName}\n`,
             `Wir freuen uns darauf, Sie zum neuen Zeitpunkt zu sehen!`
         ].join(' ').trim();
-    
+
         // Обновление даты тренировки
         await this.trainingDatesRepository.update(
             {
@@ -408,11 +420,11 @@ export class TrainingService {
                 where: { id: trainingDatesId },
             }
         );
-    
+
         // Отправляем уведомление всем участникам, зарегистрированным на обновленную дату
         for (const application of trainingDate.applications) {
             const formattedPhone = this.formatPhoneNumber(application.playerPhone);
-    
+
             setTimeout(async () => {
                 try {
                     await this.whatsAppService.sendMessage(formattedPhone + '@c.us', rescheduleMessage);
@@ -421,46 +433,46 @@ export class TrainingService {
                 }
             }, 0);
         }
-    
+
         return { message: `Training and all related TrainingDates with ID ${trainingDatesId} have been updated` };
     }
-    
+
 
     // TODO p1 Пределать что бы обновлялось только время, без даты!!!
     async updateAll(dto: UpdateTrainingDto): Promise<{ message: string }> {
         const { trainingDatesId, startTime, endTime } = dto;
-    
+
         // Находим существующую запись в TrainingDates
         const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId);
         if (!trainingDate) {
             throw new NotFoundException(`TrainingDate with ID ${trainingDatesId} not found`);
         }
-    
+
         // Находим основную запись в Training и загружаем связанные данные
         const training = await this.trainingRepository.findByPk(trainingDate.trainingId, {
             include: [
-                { model: TrainingDates, include: [Application] }, 
-                { model: Location }, 
+                { model: TrainingDates, include: [Application] },
+                { model: Location },
                 { model: Group }
             ],
         });
         if (!training) {
             throw new NotFoundException(`Training with ID ${trainingDate.trainingId} not found`);
         }
-    
+
         // Проверка наличия связанных данных
         if (!training.location) {
             throw new NotFoundException(`Location for Training with ID ${trainingDate.trainingId} not found`);
         }
-    
+
         if (!training.group) {
             throw new NotFoundException(`Group for Training with ID ${trainingDate.trainingId} not found`);
         }
-    
+
         // Устанавливаем только время (час и минуты) для обновления
         const newStartTime = moment(startTime).format('HH:mm');
         const newEndTime = moment(endTime).format('HH:mm');
-    
+
         // Обновляем только время для всех связанных дат тренировок
         const updatedTrainingDates = [];
         for (const date of training.trainigDates) {
@@ -468,20 +480,20 @@ export class TrainingService {
                 hour: parseInt(newStartTime.split(':')[0], 10),
                 minute: parseInt(newStartTime.split(':')[1], 10)
             }).toDate();
-    
+
             const updatedEndDate = moment(date.endDate).set({
                 hour: parseInt(newEndTime.split(':')[0], 10),
                 minute: parseInt(newEndTime.split(':')[1], 10)
             }).toDate();
-    
+
             await this.trainingDatesRepository.update(
                 { startDate: updatedStartDate, endDate: updatedEndDate },
                 { where: { id: date.id } }
             );
-    
+
             updatedTrainingDates.push({ startDate: updatedStartDate, endDate: updatedEndDate });
         }
-    
+
         // Формируем сообщение для уведомлений
         const newDateMessage = [
             `Die Trainingseinheit wurde auf eine neue Zeit verlegt.\n`,
@@ -490,12 +502,12 @@ export class TrainingService {
             `*Gruppe:* ${training.group.groupName}\n`,
             `Bitte beachten Sie die neue Uhrzeit für Ihre Trainings.`
         ].join(' ').trim();
-    
+
         // Уведомляем всех участников для каждой обновленной даты тренировки
         for (const date of training.trainigDates) {
             for (const application of date.applications) {
                 const formattedPhone = this.formatPhoneNumber(application.playerPhone);
-    
+
                 setTimeout(async () => {
                     try {
                         await this.whatsAppService.sendMessage(formattedPhone + '@c.us', newDateMessage);
@@ -505,13 +517,13 @@ export class TrainingService {
                 }, 0);
             }
         }
-    
+
         return { message: `Training and all related TrainingDates with ID ${training.id} have been updated with new times` };
     }
-    
-    
-    
-    
+
+
+
+
 
     private formatTrainingDate(startDate: Date, endDate: Date): string {
         const format = 'DD.MM.YYYY HH:mm';
