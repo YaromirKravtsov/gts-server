@@ -15,9 +15,9 @@ export class ApplicationController {
     /**
      * Создание новой заявки
      */
-    @Roles(['admin'])
+/*     @Roles(['admin'])
     @UseGuards(RoleGuard)
-    @ApiBearerAuth()
+    @ApiBearerAuth() */
     @Post()
     @ApiOperation({ summary: 'Create a new application' })
     @ApiBody({ type: CreateApplicationDto })
