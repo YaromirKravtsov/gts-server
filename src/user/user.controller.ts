@@ -11,6 +11,8 @@ import { ApiBody, ApiOperation, ApiParam } from '@nestjs/swagger';
 export class UserController {
     constructor(private userService: UserService ){}
 
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
     @Post('')
     @ApiOperation({ summary: 'Create new user' }) 
     @ApiBody({ type: RegisterUserDto })

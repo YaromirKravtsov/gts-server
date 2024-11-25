@@ -11,8 +11,8 @@ export class GroupController {
 
     constructor(private groupService: GroupService) { }
 
-/*     @Roles(['admin'])
-    @UseGuards(RoleGuard) */
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
     @ApiOperation({ summary: 'Create group' })
     @ApiBody({ type: CreateGroupDto })
     @Post()
@@ -42,8 +42,8 @@ export class GroupController {
     }
 
     // Обновление всей группы
-/*     @Roles(['admin'])
-    @UseGuards(RoleGuard) */
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
     @ApiOperation({ summary: 'Update group' })
     @ApiBody({ type: UpdateGroupDto, description: 'Данные для обновления группы' })
     @Put('/')
@@ -56,6 +56,8 @@ export class GroupController {
     }
 
     // Обновление поля `visible`
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
     @ApiOperation({ summary: 'Update group visibility' })
     @ApiParam({ name: 'id', type: Number, description: 'ID группы' })
     @Put(':id/visible')
@@ -64,6 +66,8 @@ export class GroupController {
     }
 
     // Обновление поля `order`
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
     @ApiOperation({ summary: 'Update group order' })
     @ApiParam({ name: 'id', type: Number, description: 'ID группы' })
     @ApiBody({ schema: { example: { order: 1 } }, description: 'Устанавливает порядок отображения группы' })
@@ -73,6 +77,8 @@ export class GroupController {
     }
 
     // Удаление группы
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
     @ApiOperation({ summary: 'Delete group' })
     @ApiParam({ name: 'id', type: Number, description: 'ID группы для удаления' })
     @Delete(':id')

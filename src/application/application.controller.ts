@@ -14,20 +14,18 @@ export class ApplicationController {
 
     /**
      * Создание новой заявки
-     *//* 
+     */
     @Roles(['admin'])
     @UseGuards(RoleGuard)
-    @ApiBearerAuth() */
+    @ApiBearerAuth()
     @Post()
     @ApiOperation({ summary: 'Create a new application' })
     @ApiBody({ type: CreateApplicationDto })
     @ApiResponse({ status: 201, description: 'The application has been successfully created.' })
     async createApplication(@Body() dto: CreateApplicationDto) {
-        try {
-            return await this.applicationService.createApplication(dto);
-        } catch (error) {
-            throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+
+        return await this.applicationService.createApplication(dto);
+
     }
 
     /**
@@ -62,26 +60,24 @@ export class ApplicationController {
         return this.applicationService.geApplication(id);
     }
 
-     /**
-     * Удалить заявку ID
-     */
-     @Delete()
-     @ApiOperation({ summary: 'Удалить заявку по ID, имени и телефону игрока' })
-     @ApiQuery({ name: 'id', type: String, description: 'ID заявки', required: true })
-     @ApiQuery({ name: 'playerName', type: String, description: 'Имя игрока', required: true })
-     @ApiQuery({ name: 'playerPhone', type: String, description: 'Телефон игрока', required: true })/* 
-     @ApiResponse({ status: 200, description: 'Заявка успешно получена' })
-     @ApiResponse({ status: 404, description: 'Заявка не найдена' }) */
-     async delete(
-       @Query('id') id: string,
-       @Query('playerName') playerName: string,
-       @Query('playerPhone') playerPhone: string
-     ) {
+    /**
+    * Удалить заявку ID
+    */
+    @Delete()
+    @ApiOperation({ summary: 'Удалить заявку по ID, имени и телефону игрока' })
+    @ApiQuery({ name: 'id', type: String, description: 'ID заявки', required: true })
+    @ApiQuery({ name: 'playerName', type: String, description: 'Имя игрока', required: true })
+    @ApiQuery({ name: 'playerPhone', type: String, description: 'Телефон игрока', required: true })
+    async delete(
+        @Query('id') id: string,
+        @Query('playerName') playerName: string,
+        @Query('playerPhone') playerPhone: string
+    ) {
         try {
             return await this.applicationService.deleteApplication(id, playerName, playerPhone);
         } catch (error) {
             throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
         }
-       
-     }
+
+    }
 }

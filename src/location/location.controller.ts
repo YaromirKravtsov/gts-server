@@ -1,13 +1,17 @@
-import { Body, Controller, Delete, Get, HttpException, HttpStatus, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpException, HttpStatus, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { LocationService } from './location.service';
 import { ApiOperation, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { CreateLocationDto } from './dto/create-location.dto';
 import { UpdateLocationDto } from './dto/update-location.dto';
+import { Roles } from 'src/role/roles-auth-decorator';
+import { RoleGuard } from 'src/role/role.gurard';
 
 @Controller('locations')
 export class LocationController {
     constructor(private locationService: LocationService) {}
 
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
     @Post()
     @ApiOperation({ summary: 'Create location' })
     @ApiBody({ type: CreateLocationDto })
@@ -35,6 +39,8 @@ export class LocationController {
         }
     }
 
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
     @Put()
     @ApiOperation({ summary: 'Update location' })
     @ApiBody({ type: UpdateLocationDto })
@@ -46,6 +52,8 @@ export class LocationController {
         }
     }
 
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
     @Put(':id/visible')
     @ApiOperation({ summary: 'Update location visibility' })
     @ApiParam({ name: 'id', type: Number, description: 'ID of the location' })
@@ -53,6 +61,8 @@ export class LocationController {
         return await this.locationService.updateVisible(id);
     }
 
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
     @Put(':id/order')
     @ApiOperation({ summary: 'Update location order' })
     @ApiParam({ name: 'id', type: Number, description: 'ID of the location' })
@@ -61,6 +71,8 @@ export class LocationController {
         return await this.locationService.updateOrder(id, order);
     }
 
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
     @Delete(':id')
     @ApiOperation({ summary: 'Delete location' })
     @ApiParam({ name: 'id', type: Number, description: 'ID of the location to delete' })
