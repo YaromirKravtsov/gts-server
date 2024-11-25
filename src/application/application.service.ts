@@ -66,7 +66,7 @@ export class ApplicationService {
         // Создание сообщений для отправки
         console.log('Creating messages for WhatsApp');
         const message = [
-            `Hallo,\n ${dto.playerName}`,
+            `Hallo, ${dto.playerName}  \n`,
             'Ihre Anmeldung zum Probetraining war erfolgreich! Hier sind die Details:\n',
             `- *Zeit:* ${date}\n`,
             `- *Ort:* ${training.location.locationName}\n  ${training.location.locationUrl}\n`,
