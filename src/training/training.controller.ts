@@ -63,6 +63,8 @@ export class TrainingController {
     /**
      * Получение тренировки по ID
      */
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
     @Get('/:id')
     @ApiOperation({ summary: 'Get a training by ID' })
     @ApiParam({ name: 'id', description: 'ID of the training' })
@@ -74,8 +76,8 @@ export class TrainingController {
     /**
      * Удаление одной записи тренировки по `trainingDatesId`
      */
-/*     @Roles(['admin'])
-    @UseGuards(RoleGuard) */
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
     @Delete('/:id')
     @ApiOperation({ summary: 'Delete a single training date by trainingDatesId' })
     @ApiParam({ name: 'id', description: 'ID of the training-dates' })
@@ -88,8 +90,8 @@ export class TrainingController {
     /**
      * Удаление всех записей тренировки и самой тренировки по `trainingDatesId`
      */
-/*     @Roles(['admin'])
-    @UseGuards(RoleGuard) */
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
     @Delete('/')
     @ApiOperation({ summary: 'Delete all training dates and the training itself by trainingDatesId' })
     @ApiBody({ type: DeleteTrainigDto })
@@ -101,8 +103,8 @@ export class TrainingController {
     /**
      * Обновление одной тренировки
      */
-/*     @Roles(['admin'])
-    @UseGuards(RoleGuard) */
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
     @Put('/:id')
     @ApiOperation({ summary: 'Update a single training' })
     @ApiParam({ name: 'id', description: 'ID of the training' })
@@ -115,8 +117,8 @@ export class TrainingController {
     /**
      * Обновление всех тренировок с аналогичными характеристиками
      */
-/*     @Roles(['admin']) */
-/*     @UseGuards(RoleGuard) */
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
     @Put('/')
     @ApiOperation({ summary: 'Update all trainings with similar attributes' })
     @ApiBody({ type: UpdateTrainingDto })
