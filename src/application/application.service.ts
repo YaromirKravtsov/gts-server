@@ -69,11 +69,11 @@ export class ApplicationService {
             `Hallo, ${dto.playerName}  \n`,
             'Ihre Anmeldung zum Probetraining war erfolgreich! Hier sind die Details:\n',
             `- *Zeit:* ${date}\n`,
-            `- *Ort:* ${training.location.locationName}\n  ${training.location.locationUrl}\n`,
-            `- *Gruppe:* ${training.group.groupName}\n  ${training.group.groupUrl}\n`,
+            `- *Ort:* ${training.location.locationName}\n`,
+            `- *Gruppe:* ${training.group.groupName}\n`,
             `Falls Sie Ihre Anmeldung stornieren möchten, können Sie dies über folgenden Link tun: ${deleteLink}\n\n`,
             'Wir freuen uns darauf, Sie beim Training zu sehen!\n',
-            'Mit freundlichen Grüßen,\nIhr Team'
+            'Mit freundlichen Grüßen,\n Tennisschule Gorovits Team'
         ].join('').trim();
         console.log('Message for player:', message);
     
