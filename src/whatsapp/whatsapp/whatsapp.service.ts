@@ -38,13 +38,14 @@ export class WhatsAppService implements OnModuleInit {
   async sendMessage(phone: string, message: string): Promise<void> {
     try {
       const contactId = phone.replace('+', '').trim() + "@c.us";
-        await this.client.sendMessage(contactId, message);
-        console.log(`Message sent to ${contactId}`);
+      console.log('Contact Id:' + contactId);
+      await this.client.sendMessage(contactId, message);
+      console.log(`Message sent to ${contactId}`);
     } catch (error) {
-        console.error('Error sending message:', error);
-        throw error; 
+      console.error('Error sending message:', error);
+      throw error;
     }
-}
+  }
 
   async createGroup(groupName: string, participants: string[]) {
     try {
@@ -68,20 +69,21 @@ export class WhatsAppService implements OnModuleInit {
       throw error;
     }
   }
-  
+
   async isWhatsAppRegistered(phone: string): Promise<boolean> {
-    try {;
+    try {
+      ;
       const contactId = phone.replace('+', '').trim() + "@c.us";
 
       console.log(contactId)
       const contact = await this.client.getContactById(contactId);
       console.log(contact)
-      return contact.isWAContact ;
+      return contact.isWAContact;
     } catch (error) {
       console.error('Error checking WhatsApp registration:', error);
       return false;
     }
   }
-  
-  
+
+
 }
