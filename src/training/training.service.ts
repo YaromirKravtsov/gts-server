@@ -275,50 +275,86 @@ export class TrainingService {
     //  Удаление одной записи по trainingDatesId из TrainingDates
     async deleteTrainingDate(dto: DeleteTrainigDto): Promise<{ message: string }> {
         const { trainingDatesId, reason } = dto;
-        const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId);
 
-        // Проверка существования тренировки
-        if (!trainingDate) {
-            throw new NotFoundException(`TrainingDates with ID ${trainingDatesId} not found`);
-        }
+        console.log(`Начинаем процесс удаления тренировки с ID: ${trainingDatesId}`);
 
-        // Форматируем дату тренировки
-        const date = this.formatTrainingDate(trainingDate.startDate, trainingDate.endDate);
-        const training = await this.getTraining(trainingDatesId); // Получаем детали тренировки
+        // Начинаем транзакцию
+        const transaction = await this.trainingDatesRepository.sequelize.transaction();
 
-        // Сообщение об отмене тренировки для каждого игрока
-        const cancellationMessage = [
-            `Die Trainingseinheit, die am ${date} stattgefunden hätte, wurde leider abgesagt.\n`,
-            `Der Trainingsort war geplant als: ${training.location.locationName}.\n`,
-            `Die Gruppe wäre gewesen: ${training.group.groupName}.\n`,
-            `Grund der Absage:\n ${reason}.`
-        ].join(' ').trim();
+        try {
+            // Получаем тренировочную дату
+            const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId, { transaction });
+            console.log('Получили тренировочную дату из базы данных:', trainingDate);
 
-        // Удаление всех заявок, связанных с тренировкой
-        const applications = await this.applicationService.getApplicationsByTrainingDateId(trainingDatesId);
-
-        const operations = applications.map(async (application) => {
-            const formattedPhone = this.formatPhoneNumber(application.playerPhone);
-
-            // Отправка сообщения игроку
-            try {
-                await this.whatsAppService.sendMessage(formattedPhone + '@c.us', cancellationMessage);
-            } catch (error) {
-                console.error(`Ошибка при отправке сообщения игроку ${application.playerPhone}:`, error);
+            if (!trainingDate) {
+                console.error(`Тренировка с ID ${trainingDatesId} не найдена`);
+                throw new NotFoundException(`TrainingDates with ID ${trainingDatesId} not found`);
             }
 
-            // Удаление заявки
-            await this.applicationService.destroyApplication(application.id);
-        });
+            // Форматируем дату тренировки
+            const date = this.formatTrainingDate(trainingDate.startDate, trainingDate.endDate);
+            console.log('Форматированная дата тренировки:', date);
 
-        // Ждем выполнения всех операций
-        await Promise.all(operations);
+            // Получаем детали тренировки
+            const training = await this.getTraining(trainingDatesId);
+            console.log('Получили детали тренировки:', training);
 
-        // Удаляем саму тренировку
-        await trainingDate.destroy();
+            // Создаем сообщение об отмене тренировки
+            const cancellationMessage = [
+                `Die Trainingseinheit, die am ${date} stattgefunden hätte, wurde leider abgesagt.\n`,
+                `Der Trainingsort war geplant als: ${training.location.locationName}.\n`,
+                `Die Gruppe wäre gewesen: ${training.group.groupName}.\n`,
+                reason.trim() !== '' ? `Grund der Absage:\n ${reason}. \n ` : '',
+                'Mit freundlichen Grüßen,\n Tennisschule Gorovits Team'
+            ].join(' ').trim();
+            console.log('Сформировано сообщение об отмене:', cancellationMessage);
 
-        return { message: `TrainingDates with ID ${trainingDatesId} has been deleted` };
+            // Получаем все заявки, связанные с тренировкой
+            const applications = await this.applicationService.getApplicationsByTrainingDateId(trainingDatesId);
+            console.log(`Получено ${applications.length} заявок, связанных с тренировкой.`);
+
+            // Удаляем все заявки
+            for (const application of applications) {
+                try {
+
+                    const formattedPhone = this.formatPhoneNumber(application.playerPhone);
+                    console.log(`Обработка заявки ID: ${application.id}, телефон игрока: ${formattedPhone}`);
+
+                    // Отправка сообщения
+                    await this.whatsAppService.sendMessage(formattedPhone, cancellationMessage);
+                    console.log(`Сообщение успешно отправлено игроку ${formattedPhone}`);
+
+                    // Удаление заявки
+                    await this.applicationService.destroyApplication(application.id);
+                    console.log(`Заявка ID ${application.id} успешно удалена`);
+                } catch (error) {
+                    console.error(`Ошибка при обработке заявки ID ${application.id}:`, error);
+                    throw new Error(`Ошибка удаления заявки ID ${application.id}: ${error.message}`);
+                }
+            }
+
+            console.log('Все заявки успешно удалены. Переходим к удалению тренировки...');
+
+            // Удаляем тренировку
+            await trainingDate.destroy({ transaction });
+            console.log(`Тренировка с ID ${trainingDatesId} успешно удалена`);
+
+            // Подтверждаем транзакцию
+            await transaction.commit();
+
+            console.log(`Процесс удаления тренировки с ID ${trainingDatesId} успешно завершен`);
+            return { message: `TrainingDates with ID ${trainingDatesId} has been deleted` };
+
+        } catch (error) {
+            console.error(`Ошибка в процессе удаления тренировки с ID ${trainingDatesId}:`, error);
+
+            // Откат транзакции при ошибке
+            await transaction.rollback();
+            throw error;
+        }
     }
+
+
 
 
 
@@ -340,7 +376,8 @@ export class TrainingService {
             `Die Trainingseinheit, die am ${date} stattgefunden hätte, wurde leider abgesagt.\n`,
             `Der Trainingsort war geplant als: ${training.location.locationName}.\n`,
             `Die Gruppe wäre gewesen: ${training.group.groupName}.\n`,
-            `Grund der Absage:\n ${reason}.`
+            reason.trim() !== '' ? `Grund der Absage:\n ${reason}. \n ` : '',
+            'Mit freundlichen Grüßen,\n Tennisschule Gorovits Team'
         ].join(' ').trim();
 
         const trainingDates = await this.trainingDatesRepository.findAll({
@@ -362,7 +399,7 @@ export class TrainingService {
 
                 try {
                     await this.whatsAppService.sendMessage(
-                        `${formattedPhone}@c.us`,
+                        `${formattedPhone}`,
                         cancellationMessage
                     );
                 } catch (error) {
@@ -407,7 +444,8 @@ export class TrainingService {
             `*Neuer Zeitpunkt:* ${newDate}\n`,
             `*Ort:* ${training.location.locationName}\n`,
             `*Gruppe:* ${training.group.groupName}\n`,
-            `Wir freuen uns darauf, Sie zum neuen Zeitpunkt zu sehen!`
+            `Wir freuen uns darauf, Sie zum neuen Zeitpunkt zu sehen!`,
+            'Mit freundlichen Grüßen,\n Tennisschule Gorovits Team'
         ].join(' ').trim();
 
         // Обновление даты тренировки
@@ -427,7 +465,7 @@ export class TrainingService {
 
             setTimeout(async () => {
                 try {
-                    await this.whatsAppService.sendMessage(formattedPhone + '@c.us', rescheduleMessage);
+                    await this.whatsAppService.sendMessage(formattedPhone, rescheduleMessage);
                 } catch (error) {
                     console.error('Ошибка при отправке сообщения в WhatsApp:', error);
                 }
@@ -500,17 +538,18 @@ export class TrainingService {
             `*Neue Zeitpunkte:* Die ersten Trainingseinheiten beginnen um ${newStartTime} und enden um ${newEndTime}.\n`,
             `*Ort:* ${training.location.locationName}\n`,
             `*Gruppe:* ${training.group.groupName}\n`,
-            `Bitte beachten Sie die neue Uhrzeit für Ihre Trainings.`
+            `Bitte beachten Sie die neue Uhrzeit für Ihre Trainings.`,
+            'Mit freundlichen Grüßen,\n Tennisschule Gorovits Team'
         ].join(' ').trim();
 
-        // Уведомляем всех участников для каждой обновленной даты тренировки
+
         for (const date of training.trainigDates) {
             for (const application of date.applications) {
                 const formattedPhone = this.formatPhoneNumber(application.playerPhone);
 
                 setTimeout(async () => {
                     try {
-                        await this.whatsAppService.sendMessage(formattedPhone + '@c.us', newDateMessage);
+                        await this.whatsAppService.sendMessage(formattedPhone, newDateMessage);
                     } catch (error) {
                         console.error('Ошибка при отправке сообщения в WhatsApp:', error);
                     }
@@ -531,18 +570,28 @@ export class TrainingService {
         const end = moment(endDate).tz('Europe/Berlin').format('HH:mm'); // Только время для конца
         return `${start} - ${end}`;
     }
+
+
     private formatPhoneNumber(phone: string): string {
-        let cleanedPhone = phone.replace(/\D/g, ''); // Удалить все кроме цифр
+        let cleanedPhone = phone.replace(/\D/g, ''); // Удалить все символы, кроме цифр
+
+        if (phone.startsWith('+')) {
+            // Если номер уже начинается с "+" — убираем всё кроме цифр и возвращаем
+            return phone.replace(/\s/g, ''); // Удалить пробелы, но оставить "+"
+        }
 
         if (cleanedPhone.startsWith('0')) {
-            cleanedPhone = '49' + cleanedPhone.slice(1); // Заменить ведущий 0 на код страны 49
+            // Если номер начинается с "0", предполагаем, что это немецкий номер
+            cleanedPhone = '49' + cleanedPhone.slice(1); // Заменяем "0" на код страны "49"
         }
 
-        if (cleanedPhone.startsWith('49')) {
-            return cleanedPhone; // Возврат если номер начинается с правильного кода
+        // Если номер начинается с кода "49" (Германия) или других международных кодов, возвращаем
+        if (cleanedPhone.startsWith('49') || cleanedPhone.startsWith('380')) {
+            return '+' + cleanedPhone; // Добавляем "+" в начале, если его нет
         }
 
-        throw new Error('Invalid phone number format');
+        console.log('Invalid phone number format');
+        throw new Error('Invalid phone number format')
     }
 
     adjustTrainingDates(trainingDate: Date, time: Date): Date {
