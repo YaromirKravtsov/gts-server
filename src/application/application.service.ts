@@ -82,7 +82,7 @@ export class ApplicationService {
             `*Zeit:* ${date}\n`,
             `*Ort:* ${training.location.locationName}\n`,
             `*Gruppe:* ${training.group.groupName}\n`,
-            `*Spieler:* ${dto.playerName}`,
+            `*Spieler:* ${dto.playerName}\n`,
             `*Telefonnummer:* ${dto.playerPhone}`,
 
             dto.playerComment ? `\n*Kommentar:* ${dto.playerComment}` : ''
