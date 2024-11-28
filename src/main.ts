@@ -4,6 +4,8 @@ import * as cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
 import * as bodyParser from 'body-parser'; // Импортируем body-parser
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { HttpExceptionFilter } from './http-exception.filter/http-exception.filter';
+
 
 async function bootstrap() {
   const PORT = process.env.PORT || 5000;
@@ -25,6 +27,14 @@ async function bootstrap() {
     'bearer', // Уникальный идентификатор схемы авторизации
   )
   .build();
+
+  
+  console.log('Registering global filters');
+
+  
+
+  app.useGlobalPipes(new ValidationPipe);
+  
 
   const document = SwaggerModule.createDocument(app, config);
   const options = {
