@@ -83,6 +83,8 @@ export class ApplicationService {
             `*Ort:* ${training.location.locationName}\n`,
             `*Gruppe:* ${training.group.groupName}\n`,
             `*Spieler:* ${dto.playerName}`,
+            `*Telefonnummer:* ${dto.playerPhone}`,
+
             dto.playerComment ? `\n*Kommentar:* ${dto.playerComment}` : ''
         ].join('').trim();
         console.log('Message for group:', groupMessage);
