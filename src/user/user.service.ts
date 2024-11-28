@@ -18,7 +18,7 @@ export class UserService {
 ) { }
 
     async createNewUser(dto: RegisterUserDto,) {
-        try {
+     /*    try {
             const candidate = await this.userRepository.findOne({ where: { username: dto.username } });
 
             if (candidate) {
@@ -41,7 +41,7 @@ export class UserService {
         } catch (error) {
             console.log(error)
             throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        } */
     }
     async login(dto: LoginDto) {
         try {

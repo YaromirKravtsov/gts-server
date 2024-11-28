@@ -10,17 +10,19 @@ import { ApiBody, ApiOperation, ApiParam } from '@nestjs/swagger';
 @Controller('user')
 export class UserController {
     constructor(private userService: UserService ){}
-
+/* 
     @Roles(['admin'])
-    @UseGuards(RoleGuard)
+    @UseGuards(RoleGuard) */
     @Post('')
-    @ApiOperation({ summary: 'Create new user' }) 
+    @ApiOperation({ summary: 'Create new user' })
     @ApiBody({ type: RegisterUserDto })
     async createNewUser(@Body() dto: RegisterUserDto) {
+        console.log('Incoming DTO:', dto);
         try {
-            const userData = await this.userService.createNewUser(dto);
-            return userData;
+            
+            return;
         } catch (error) {
+            console.log('Controller caught error:', error.message);
             throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
