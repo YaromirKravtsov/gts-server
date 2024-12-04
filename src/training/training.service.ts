@@ -5,7 +5,7 @@ import { CreateTrainingDto } from './dto/create-training-dto';
 import { Roles } from 'src/role/roles-auth-decorator';
 import { RoleGuard } from 'src/role/role.gurard';
 import { Model, Op } from 'sequelize';
-import { Group } from 'src/group/group.model';
+import { Group } from '../../src/group/group.model';
 import { Location } from 'src/location/location.model';
 import { TrainingDates } from './trainig-dates.model';
 import { DeleteTrainigDto } from './dto/delete-training';
@@ -476,7 +476,6 @@ export class TrainingService {
     }
 
 
-    // TODO p1 Пределать что бы обновлялось только время, без даты!!!
     async updateAll(dto: UpdateTrainingDto): Promise<{ message: string }> {
         const { trainingDatesId, startTime, endTime } = dto;
 
@@ -572,22 +571,19 @@ export class TrainingService {
     }
 
 
-    private formatPhoneNumber(phone: string): string {
+    public formatPhoneNumber(phone: string): string {
         let cleanedPhone = phone.replace(/\D/g, ''); // Удалить все символы, кроме цифр
 
         if (phone.startsWith('+')) {
-            // Если номер уже начинается с "+" — убираем всё кроме цифр и возвращаем
-            return phone.replace(/\s/g, ''); // Удалить пробелы, но оставить "+"
+            return phone.replace(/\s/g, '');
         }
 
         if (cleanedPhone.startsWith('0')) {
-            // Если номер начинается с "0", предполагаем, что это немецкий номер
-            cleanedPhone = '49' + cleanedPhone.slice(1); // Заменяем "0" на код страны "49"
+            cleanedPhone = '49' + cleanedPhone.slice(1); 
         }
 
-        // Если номер начинается с кода "49" (Германия) или других международных кодов, возвращаем
         if (cleanedPhone.startsWith('49') || cleanedPhone.startsWith('380')) {
-            return '+' + cleanedPhone; // Добавляем "+" в начале, если его нет
+            return '+' + cleanedPhone; 
         }
 
         console.log('Invalid phone number format');

@@ -4,7 +4,7 @@ import { InjectModel } from '@nestjs/sequelize';
 import { Application } from './application.model';
 import { Training } from 'src/training/training.model';
 import { Op } from 'sequelize';
-import { Group } from 'src/group/group.model';
+import { Group } from '../../src/group/group.model';
 import { Location } from 'src/location/location.model';
 import { TrainingDates } from 'src/training/trainig-dates.model';
 import * as moment from 'moment-timezone';
