@@ -83,4 +83,5 @@ export class LocationController {
             throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 }

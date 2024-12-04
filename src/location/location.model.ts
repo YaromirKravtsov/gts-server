@@ -1,6 +1,6 @@
 
 import {Model, Column, DataType, Table, HasMany } from "sequelize-typescript";
-import { Training } from "src/training/training.model";
+import { Training } from "../../src/training/training.model";
 
 
 interface LocationCreationAttrs{
@@ -18,7 +18,7 @@ export class Location extends Model<Location,LocationCreationAttrs>{
     @Column({type:DataType.STRING, allowNull:false})
     locationName: string
 
-    @Column({type:DataType.TEXT, allowNull:true})
+    @Column({type:DataType.TEXT, allowNull:false})
     locationUrl: string;
 
     @Column({type:DataType.BOOLEAN, allowNull:false})
