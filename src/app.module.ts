@@ -19,6 +19,8 @@ import { Training } from './training/training.model';
 import { Application } from './application/application.model';
 import { TrainingDates } from './training/trainig-dates.model';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
+import * as dotenv from 'dotenv';
+dotenv.config({ path: '.test.env' });
 
 
 @Module({
@@ -34,7 +36,7 @@ import { WhatsappModule } from './whatsapp/whatsapp.module';
       password:process.env.MYSQL_PASSWORD,
       database: process.env.MYSQL_DB,
       models: [User,Token, Group, Location, Training, Application,TrainingDates],
-      autoLoadModels:  false
+      autoLoadModels:  process.env.AUTO_LOAD_MODELS == 'true'
     }),
     UserModule,
     TokenModule,

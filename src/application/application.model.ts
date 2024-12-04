@@ -1,18 +1,13 @@
 
 import {Model, Column, DataType, Table, HasMany, ForeignKey, BelongsTo } from "sequelize-typescript";
 import { TrainingDates } from "src/training/trainig-dates.model";
-import { Training } from "src/training/training.model";
-
-
-
-
-
 
 interface ApplicationCreationAttrs{
     playerName: string;
     playerPhone: string;
     playerComment?:string;
     trainingDatesId: number;
+    isPresent: boolean
 }
 @Table({tableName:'application',createdAt:true, updatedAt:false})
 export class Application extends Model<Application,ApplicationCreationAttrs>{
@@ -28,6 +23,10 @@ export class Application extends Model<Application,ApplicationCreationAttrs>{
     
     @Column({type:DataType.STRING, allowNull:false})
     playerName: string
+
+        
+    @Column({type:DataType.BOOLEAN, allowNull:false})
+    isPresent: boolean
 
     @Column({type:DataType.STRING, allowNull:true})
     playerPhone: string;
