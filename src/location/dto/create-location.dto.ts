@@ -6,9 +6,9 @@ export class CreateLocationDto {
     @IsString()
     locationName: string;
 
-    @ApiProperty({ description: 'URL локации', required: false })
-    @IsOptional()
+    @ApiProperty({ description: 'URL локации' })
+/*     @IsOptional() */
     @IsString()
-    locationUrl?: string;
+    locationUrl: string;
 
 }

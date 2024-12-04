@@ -1,7 +1,7 @@
 
 import { Model, Column, DataType, Table, ForeignKey, BelongsTo, HasMany } from "sequelize-typescript";
 import { Application } from "src/application/application.model";
-import { Group } from "src/group/group.model";
+import { Group } from "../../src/group/group.model";
 import { Location } from "src/location/location.model";
 import { Training } from "./training.model";
 
