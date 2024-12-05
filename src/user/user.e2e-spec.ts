@@ -11,7 +11,8 @@ describe('User e2e', () => {
     let app: INestApplication;
     let sequelize: Sequelize;
     let accessToken: string;
-
+    let userId;
+    let adminId;
     beforeAll(async () => {
         const moduleFixture = await Test.createTestingModule({
             imports: [AppModule],
@@ -20,10 +21,6 @@ describe('User e2e', () => {
             .useValue({
                 init: jest.fn(), // Пустая mock-реализация
             })
-            /*     .overrideGuard(RoleGuard) // Переопределяем Guard
-                .useValue({
-                    canActivate: jest.fn(() => true), // Мокируем поведение
-                }) */
             .compile();
 
         app = moduleFixture.createNestApplication();
@@ -38,6 +35,8 @@ describe('User e2e', () => {
             role: 'admin',
         });
 
+        adminId = user.id
+
         // Логинимся, чтобы получить токен
         const loginResponse = await request(app.getHttpServer())
             .post('/user/login')
@@ -48,12 +47,12 @@ describe('User e2e', () => {
 
         accessToken = loginResponse.body.accessToken; // Сохраняем accessToken
     });
-/* 
-    beforeEach(async () => {
-
-
-    });
- */
+    /* 
+        beforeEach(async () => {
+    
+    
+        });
+     */
 
     afterAll(async () => {
         await Token.destroy({ where: {} });
@@ -61,7 +60,7 @@ describe('User e2e', () => {
     });
 
 
-    let userId;
+
     it('should create new user', async () => {
         const response = await request(app.getHttpServer())
             .post('/user/regularPlayer') // URL эндпоинта
@@ -83,6 +82,7 @@ describe('User e2e', () => {
 
 
 
+
     it('should return creatin fail', async () => {
 
         const response = await request(app.getHttpServer())
@@ -97,6 +97,9 @@ describe('User e2e', () => {
 
         expect(response.status).toBe(HttpStatus.FORBIDDEN);
     });
+
+
+
 
 
 
@@ -122,7 +125,49 @@ describe('User e2e', () => {
         expect(response.body.adminComment).toBe('Updated by test');
     });
 
+    it('should edit role to regular player', async () => {
+        const response = await request(app.getHttpServer())
+            .put(`/user/convert/new-to-regular/${adminId}`) // URL эндпоинта
+            .set('Authorization', `Bearer ${accessToken}`) // Передаём токен авторизации
+        expect(response.status).toBe(200);
+        expect(response.body.role).toBe('regularPlayer');
+    });
 
+    it('should get user', async () => {
+        console.log('userId get get' + userId)
+        const response = await request(app.getHttpServer())
+            .get(`/user/one/${userId}`)
+            .set('Authorization', `Bearer ${accessToken}`) // Передаём токен авторизаци
+        expect(response.status).toBe(200);
+        expect(response.body.username).toBe('Яромир Кравцов');
+        expect(response.body.email).toBe('yaromir@gmail.com');
+        expect(response.body.phone).toBe('+456546546456');
+        expect(response.body.adminComment).toBe('Updated by test');
+    });
+
+
+    it('should get all players', async () => {
+        const response = await request(app.getHttpServer())
+            .get('/user/players')
+            .set('Authorization', `Bearer ${accessToken}`) // Передаём токен авторизаци
+            
+            expect(response.status).toBe(200);
+
+        const players = response.body;
+        players.forEach(player => {
+            expect(player).toHaveProperty('username');
+            expect(player).toHaveProperty('role');
+            expect(player.role).not.toBe('admin');
+            expect(player.role).not.toBe('trainer');
+            expect(player).not.toHaveProperty('password'); 
+        });
+
+        expect(Array.isArray(players)).toBe(true);
+    });
+
+
+
+  
 
     it('delete user', async () => {
         console.log('userId delete ' + userId);
@@ -133,8 +178,6 @@ describe('User e2e', () => {
             .set('Authorization', `Bearer ${accessToken}`) // Передаём токен авторизации
         expect(response.status).toBe(200);
     });
-
-
 
 
 })
