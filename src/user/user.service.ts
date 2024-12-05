@@ -135,6 +135,34 @@ export class UserService {
             throw new HttpException(error.message, error.status || HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    async searchPlayers(searchQuery: string) {
+        try {
+            if (!searchQuery || searchQuery.trim() === '') {
+                throw new HttpException('Search query cannot be empty', HttpStatus.BAD_REQUEST);
+            }
+
+            const players = await this.userRepository.findAll({
+                where: {
+                    [Op.or]: [
+                        { username: { [Op.like]: `%${searchQuery}%` } }, // Поиск по имени
+                        { phone: { [Op.like]: `%${searchQuery}%` } },    // Поиск по телефону
+                        { email: { [Op.like]: `%${searchQuery}%` } },    // Поиск по email
+                    ],
+                },
+                attributes: { exclude: ['password'] }, // Исключаем поле password
+            });
+
+            return players;
+        } catch (error) {
+            console.error(error);
+            throw new HttpException(
+                error.message || 'Internal Server Error',
+                error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
     async login(dto: LoginDto) {
         try {
             const user = await this.userRepository.findOne({ where: { username: dto.username } });

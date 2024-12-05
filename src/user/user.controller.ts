@@ -12,7 +12,6 @@ import { EditUserDto } from './dto/edit-user.dto';
 export class UserController {
     constructor(private userService: UserService) { }
 
-
     @Roles(['admin'])
     @UseGuards(RoleGuard)
     @Get('one/:id')
@@ -38,6 +37,16 @@ export class UserController {
     @ApiOperation({ summary: 'Get all users' })
     async getAllUsers() {
         return await this.userService.getAllUsers();
+    }
+
+
+/*     @Roles(['admin'])
+    @UseGuards(RoleGuard) */
+    @Get('/search-players')
+    @ApiOperation({ summary: 'Search players' })
+    @ApiQuery({ name: 'searchQuery'})
+    async searchPlayers(@Query('searchQuery') searchQuery:string) {
+        return await this.userService.searchPlayers(searchQuery);
     }
 
 
@@ -69,9 +78,6 @@ export class UserController {
         return await this.userService.deleteUser(id)
     }
 
-
-
-
     @Post('login')
     @ApiOperation({ summary: 'User logining' })
     @ApiBody({ type: LoginDto })
@@ -81,4 +87,10 @@ export class UserController {
         res.cookie('deviceId', userData.deviceId, { maxAge: 30 * 24 * 60 * 68 * 1000, httpOnly: true });
         return res.status(200).json(userData);
     }
+
+
+    
+
+
+
 }
