@@ -24,18 +24,23 @@ export class UserService {
             const candidate = await this.userRepository.findOne({ where: { username: dto.username } });
 
             if (candidate) {
-                throw new HttpException('Ein Benutzer mit dieser Name ist bereits registriert', HttpStatus.FORBIDDEN);
+                throw new HttpException(
+                    'Ein Benutzer mit dieser Name ist bereits registriert',
+                    HttpStatus.FORBIDDEN
+                );
+    
             }
 
             const user = await this.userRepository.create({ ...dto});
             
             const returnData = {
-                userId: user.id
+                userId: user.id,
+                username: user.username
             }
             return returnData;
         } catch (error) {
             console.log(error)
-            throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new HttpException(error.message, error.status ||  HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
     
@@ -54,9 +59,16 @@ export class UserService {
                 phone: dto.phone,
                 adminComment: dto.adminComment,
             })
+
+            return {
+                username: player.username,
+                email: player.email,
+                adminComment: player.adminComment,
+                phone: player.phone,
+            };
         } catch (error) {
             console.log(error)
-            throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new HttpException(error.message, error.status || HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -68,12 +80,12 @@ export class UserService {
             if (!player) {
                 throw new HttpException('Benutzername oder Passwort ist ungültig', HttpStatus.NOT_FOUND);
             }
-            
+
             await player.destroy()
             return;
-        }catch (e) {
-            console.error(e);
-            throw new HttpException(e, HttpStatus.INTERNAL_SERVER_ERROR);
+        }catch (error) {
+            console.log(error)
+            throw new HttpException(error.message, error.status || HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
     
@@ -103,9 +115,9 @@ export class UserService {
             await this.tokenService.saveToken({ ...tokenDto, deviceId })
 
             return { ...tokens, deviceId };
-        } catch (e) {
-            console.error(e);
-            throw new HttpException(e, HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (error) {
+            console.log(error)
+            throw new HttpException(error.message, error.status || HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

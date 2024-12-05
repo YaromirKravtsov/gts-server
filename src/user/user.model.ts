@@ -7,8 +7,8 @@ import { Token } from "src/token/token.model";
 
 
 interface UserCreationAttrs{
-    userName: string;
-/*     password: string; */
+    username: string;
+    password?: string;
     role:string;
     phone?: string;
     email?:string;
