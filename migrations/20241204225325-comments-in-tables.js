@@ -26,5 +26,5 @@ module.exports = {
     await queryInterface.removeColumn('application', 'adminComment');
     await queryInterface.removeColumn('training_dates', 'adminComment')
   }
-  
+
 };
