@@ -133,6 +133,8 @@ describe('User e2e', () => {
         expect(response.body.role).toBe('regularPlayer');
     });
 
+
+ 
     it('should get user', async () => {
         console.log('userId get get' + userId)
         const response = await request(app.getHttpServer())
@@ -150,8 +152,8 @@ describe('User e2e', () => {
         const response = await request(app.getHttpServer())
             .get('/user/players')
             .set('Authorization', `Bearer ${accessToken}`) // Передаём токен авторизаци
-            
-            expect(response.status).toBe(200);
+
+        expect(response.status).toBe(200);
 
         const players = response.body;
         players.forEach(player => {
@@ -159,15 +161,46 @@ describe('User e2e', () => {
             expect(player).toHaveProperty('role');
             expect(player.role).not.toBe('admin');
             expect(player.role).not.toBe('trainer');
-            expect(player).not.toHaveProperty('password'); 
+            expect(player).not.toHaveProperty('password');
         });
 
         expect(Array.isArray(players)).toBe(true);
     });
 
 
-
-  
+    it('should search players by name, phone, and email', async () => {
+        // Поиск по имени
+        const searchQueryName = encodeURIComponent('Яромир'); 
+        const responseName = await request(app.getHttpServer())
+            .get(`/user/search-players?searchQuery=${searchQueryName}`)
+            .set('Authorization', `Bearer ${accessToken}`);
+        expect(responseName.status).toBe(200);
+        const playersByName = responseName.body;
+        expect(playersByName[0].username).toBe('Яромир Кравцов');
+        expect(playersByName[0].email).toBe('yaromir@gmail.com');
+        expect(playersByName[0].phone).toBe('+456546546456');
+    
+        // Поиск по телефону
+        const searchQueryPhone = encodeURIComponent('+456546546456');
+        const responsePhone = await request(app.getHttpServer())
+            .get(`/user/search-players?searchQuery=${searchQueryPhone}`)
+            .set('Authorization', `Bearer ${accessToken}`);
+        expect(responsePhone.status).toBe(200);
+        const playersByPhone = responsePhone.body;
+        expect(playersByPhone[0].username).toBe('Яромир Кравцов');
+        expect(playersByPhone[0].email).toBe('yaromir@gmail.com');
+        expect(playersByPhone[0].phone).toBe('+456546546456');
+    
+        const searchQueryEmail = encodeURIComponent('yaromir@gmail.com');
+        const responseEmail = await request(app.getHttpServer())
+            .get(`/user/search-players?searchQuery=${searchQueryEmail}`)
+            .set('Authorization', `Bearer ${accessToken}`);
+        expect(responseEmail.status).toBe(200);
+        const playersByEmail = responseEmail.body;
+        expect(playersByEmail[0].username).toBe('Яромир Кравцов');
+        expect(playersByEmail[0].email).toBe('yaromir@gmail.com');
+        expect(playersByEmail[0].phone).toBe('+456546546456');
+    });
 
     it('delete user', async () => {
         console.log('userId delete ' + userId);
@@ -178,6 +211,5 @@ describe('User e2e', () => {
             .set('Authorization', `Bearer ${accessToken}`) // Передаём токен авторизации
         expect(response.status).toBe(200);
     });
-
 
 })
