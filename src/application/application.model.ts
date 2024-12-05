@@ -6,7 +6,8 @@ import { User } from "src/user/user.model";
 interface ApplicationCreationAttrs{
     playerComment?:string;
     trainingDatesId: number;
-    isPresent: boolean
+    isPresent: boolean;
+    userId: number
 }
 @Table({tableName:'application',createdAt:true, updatedAt:false})
 export class Application extends Model<Application,ApplicationCreationAttrs>{
@@ -17,7 +18,7 @@ export class Application extends Model<Application,ApplicationCreationAttrs>{
     @Column({type:DataType.STRING, allowNull:true})
     playerComment:string;
 
-    @Column({type:DataType.BOOLEAN, allowNull:false})
+    @Column({type:DataType.BOOLEAN, allowNull:true})
     isPresent: boolean
         
     @Column({type:DataType.TEXT, allowNull:true})
@@ -35,5 +36,4 @@ export class Application extends Model<Application,ApplicationCreationAttrs>{
     userId: number;
     @BelongsTo(()=> User)
     user: User;
-
 }
