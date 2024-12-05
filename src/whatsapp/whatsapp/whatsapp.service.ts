@@ -36,6 +36,10 @@ export class WhatsAppService implements OnModuleInit {
   }
 
   async sendMessage(phone: string, message: string): Promise<void> {
+    const state = await this.client.getState();
+    if (!this.client || state !== 'CONNECTED') {
+      return;
+    }
     try {
       const contactId = phone.replace('+', '').trim() + "@c.us";
       console.log('Contact Id:' + contactId);
@@ -59,6 +63,10 @@ export class WhatsAppService implements OnModuleInit {
   }
 
   async sendMessageToGroup(message: string) {
+    const state = await this.client.getState();
+    if (!this.client || state !== 'CONNECTED') {
+      return true;
+    }
     const groupId = '120363347100599639@g.us';
     try {
       console.log('В группу')
@@ -72,7 +80,11 @@ export class WhatsAppService implements OnModuleInit {
 
   async isWhatsAppRegistered(phone: string): Promise<boolean> {
     try {
-      ;
+
+      const state = await this.client.getState();
+      if (!this.client || state !== 'CONNECTED') {
+        return true;
+      }
       const contactId = phone.replace('+', '').trim() + "@c.us";
 
       console.log(contactId)

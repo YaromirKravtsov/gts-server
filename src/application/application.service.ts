@@ -26,7 +26,7 @@ export class ApplicationService {
     ) { }
 
     // Создание новой заявки
-    async createApplication(dto: CreateApplicationDto): Promise<Application> {
+    async createApplication(dto: CreateApplicationDto) {
 
         const trainingDate = await this.trainingDatesRepository.findByPk(dto.trainingDatesId);
         if (!trainingDate) {
@@ -51,7 +51,7 @@ export class ApplicationService {
             playerComment: dto.playerComment,
             trainingDatesId: dto.trainingDatesId,
             isPresent: false,
-            userId: user.userId
+            userId: user.id
         });
 
         const training = await this.trainingService.getTraining(dto.trainingDatesId);
@@ -102,7 +102,7 @@ export class ApplicationService {
 
     async addRegularPlayerToTraining(dto: AddRegularPlayerToTraing) {
 
-        const { userId, trainingDatesId } = dto
+        const { userId, trainingDatesId } = dto;
         const player = await this.userService.getUser(userId);
 
         if (!player) {
@@ -124,35 +124,67 @@ export class ApplicationService {
         return application;
     }
 
-    async addRegularPlayerToAllTraining(dto: AddRegularPlayerToTraing) {
-
-
-        const { userId, trainingDatesId } = dto
+    async addRegularPlayerToAllTraining(dto) {
+        const { userId, trainingId } = dto;
         const player = await this.userService.getUser(userId);
-
+    
         if (!player) {
             throw new HttpException('Player wurde nicht gefunden', HttpStatus.NOT_FOUND);
         }
-
-
-        const dateTraingsIds = await this.trainingService.getDateTraingsIdsByDateTraingId(trainingDatesId);
-
+    
+        const dateTraingsIds = await this.trainingService.getDateTraingsIdsByDateTraingId(trainingId);
+    
         if (!dateTraingsIds) {
             throw new HttpException('Training wurde nicht gefunden', HttpStatus.NOT_FOUND);
         }
+    
         const applications = [];
-        dateTraingsIds.map(async trainingDatesId => {
+    
+        for (const trainingDatesId of dateTraingsIds) {
             const application = await this.applicationRepository.create({
                 isPresent: false,
                 trainingDatesId,
-                userId
+                userId,
             });
-
-            applications.push(application)
-        })
-
+            applications.push(application);
+        }
+    
         return applications;
     }
+    
+
+    async deletePlayerApplication(applicationId: number) {
+        const application = await this.applicationRepository.findByPk(applicationId)
+        if (!application) {
+            throw new HttpException('Anmeldung wurde nicht gefunden', HttpStatus.NOT_FOUND);
+        }
+        await application.destroy();
+
+        return;
+    }
+
+
+    async deleteAllPlayerApplicationToThisTraining(dto) {
+        const { trainingId, userId } = dto;
+        console.log('Training ID:', trainingId, 'User ID:', userId);
+    
+        const dateTraingsIds = await this.trainingService.getDateTraingsIdsByDateTraingId(trainingId);
+    
+        if (!Array.isArray(dateTraingsIds) || dateTraingsIds.length === 0) {
+            throw new HttpException('Anmeldung wurde nicht gefunden', HttpStatus.NOT_FOUND);
+        }
+        console.log('Date Training IDs:', dateTraingsIds);
+    
+        await this.applicationRepository.destroy({
+            where: {
+                trainingDatesId: dateTraingsIds,
+                userId: userId,
+            },
+        });
+    
+        return;
+    }
+    
 
     async getApplicationsByTrainingDateId(trainingDatesId: number) {
         return this.applicationRepository.findAll({ where: { trainingDatesId } });
@@ -274,6 +306,22 @@ export class ApplicationService {
         return await this.applicationRepository.destroy({
             where: { id },
         });
+    }
+
+    async putIsPresent(applicationId:number) {
+        console.log('applicationId putIsPresent ' + applicationId);
+        const application = await this.applicationRepository.findByPk(applicationId);
+        if (!application) {
+            throw new NotFoundException(`Die Registrierung wurde nicht gefunden`);
+        }
+        await application.update({
+            isPresent: !application.isPresent
+        })
+        return {
+            id: application.id,
+            isPresent: application.isPresent
+        }
+
     }
 
     // 

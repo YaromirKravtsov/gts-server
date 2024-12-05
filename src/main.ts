@@ -14,7 +14,7 @@ async function bootstrap() {
 
 
   const config = new DocumentBuilder()
-  .setTitle('My API')
+  .setTitle('Gorovits tennis shulle app')
   .setDescription('API documentation')
   .setVersion('1.0')
   .addBearerAuth(

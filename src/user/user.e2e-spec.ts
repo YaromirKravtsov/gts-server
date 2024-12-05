@@ -66,13 +66,11 @@ describe('User e2e', () => {
             .post('/user/regularPlayer') // URL эндпоинта
             .set('Authorization', `Bearer ${accessToken}`) // Передаём токен авторизации
             .send({
-
                 username: 'newUser',
                 email: 'newuser@example.com',
-                phone: '+123456789'/* ,
-                adminComment: 'Updated by test', */
+                phone: '+123456789'
             });
-        userId = response.body.userId
+        userId = response.body.id
         console.log('userId set ' + userId);
 
         expect(response.status).toBe(201);
@@ -80,11 +78,7 @@ describe('User e2e', () => {
     });
 
 
-
-
-
     it('should return creatin fail', async () => {
-
         const response = await request(app.getHttpServer())
             .post('/user/regularPlayer')
             .set('Authorization', `Bearer ${accessToken}`) // Передаём токен авторизации
@@ -134,7 +128,7 @@ describe('User e2e', () => {
     });
 
 
- 
+
     it('should get user', async () => {
         console.log('userId get get' + userId)
         const response = await request(app.getHttpServer())
@@ -170,7 +164,7 @@ describe('User e2e', () => {
 
     it('should search players by name, phone, and email', async () => {
         // Поиск по имени
-        const searchQueryName = encodeURIComponent('Яромир'); 
+        const searchQueryName = encodeURIComponent('Яромир');
         const responseName = await request(app.getHttpServer())
             .get(`/user/search-players?searchQuery=${searchQueryName}`)
             .set('Authorization', `Bearer ${accessToken}`);
@@ -179,7 +173,7 @@ describe('User e2e', () => {
         expect(playersByName[0].username).toBe('Яромир Кравцов');
         expect(playersByName[0].email).toBe('yaromir@gmail.com');
         expect(playersByName[0].phone).toBe('+456546546456');
-    
+
         // Поиск по телефону
         const searchQueryPhone = encodeURIComponent('+456546546456');
         const responsePhone = await request(app.getHttpServer())
@@ -190,7 +184,7 @@ describe('User e2e', () => {
         expect(playersByPhone[0].username).toBe('Яромир Кравцов');
         expect(playersByPhone[0].email).toBe('yaromir@gmail.com');
         expect(playersByPhone[0].phone).toBe('+456546546456');
-    
+
         const searchQueryEmail = encodeURIComponent('yaromir@gmail.com');
         const responseEmail = await request(app.getHttpServer())
             .get(`/user/search-players?searchQuery=${searchQueryEmail}`)
