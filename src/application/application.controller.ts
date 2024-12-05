@@ -16,9 +16,7 @@ export class ApplicationController {
     /**
      * Создание новой заявки
      */
-    /*     @Roles(['admin'])
-        @UseGuards(RoleGuard)
-        @ApiBearerAuth() */
+
     @Post('/new-player')
     @ApiOperation({ summary: 'Create a new application' })
     @ApiBody({ type: CreateApplicationDto })
@@ -36,7 +34,9 @@ export class ApplicationController {
     }
 
 
-
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
+    @ApiBearerAuth()
     @Post('/add-regular')
     @ApiOperation({ summary: 'Add regular player to training(only to this one)' })
     @ApiBody({ type: AddRegularPlayerToTraing })
@@ -53,11 +53,29 @@ export class ApplicationController {
         }
     }
 
-    //TODO Сделать маршрут по добовления пользователя на все тренировки. 
+
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
+    @ApiBearerAuth()
+    @Post('/add-regular-to-all')
+    @ApiOperation({ summary: 'Add regular player to training(only to this one)' })
+    @ApiBody({ type: AddRegularPlayerToTraing })
+    @ApiResponse({ status: 201, description: 'The application has been successfully created.' })
+    async addRegularPlayerToAllTraining(@Body() dto: AddRegularPlayerToTraing) {
+        try {
+            return await this.applicationService.addRegularPlayerToAllTraining(dto);
+        } catch (error) {
+            console.error(error);
+            throw new HttpException(
+                error.message || 'Internal Server Error',
+                error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
 
     //TODO Сделать маршрут по удаления игрока с одной тренировки. 
     //TODO Сделать маршрут по удаления игрока со все тренировки. 
-    
+
 
     /**
      * Получение заявок за указанный месяц

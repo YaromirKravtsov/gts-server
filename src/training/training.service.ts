@@ -374,7 +374,7 @@ export class TrainingService {
 
         const trainingDates = await this.trainingDatesRepository.findAll({
             where: { trainingId },
-            include:  {
+            include: {
                 model: Application,
                 include: [User]
             }, // Загружаем заявки на каждую дату тренировки
@@ -474,7 +474,7 @@ export class TrainingService {
 
     async updateAll(dto: UpdateTrainingDto): Promise<{ message: string }> {
         const { trainingDatesId, startTime, endTime } = dto;
-
+        
         const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId);
         if (!trainingDate) {
             throw new NotFoundException(`TrainingDate with ID ${trainingDatesId} not found`);
@@ -498,7 +498,7 @@ export class TrainingService {
             ],
         });
 
-        
+
         if (!training) {
             throw new NotFoundException(`Training with ID ${trainingDate.trainingId} not found`);
         }
@@ -546,7 +546,7 @@ export class TrainingService {
 
         for (const date of training.trainigDates) {
             for (const application of date.applications) {
-              
+
 
                 const formattedPhone = this.formatPhoneNumber(application.user.phone);
 
@@ -566,6 +566,28 @@ export class TrainingService {
 
 
 
+    async getDateTraingsIdsByDateTraingId(trainingId: number): Promise<number[]> {
+        // Находим тренировку с её связанными датами
+        const training = await this.trainingRepository.findByPk(trainingId, {
+            include: [
+                {
+                    model: TrainingDates, // Включаем связанные TrainingDates
+                    attributes: ['id'], // Берём только поле id
+                },
+            ],
+        });
+    
+        // Если тренировка не найдена, выбрасываем исключение
+        if (!training) {
+            throw new HttpException('Training not found', HttpStatus.NOT_FOUND);
+        }
+    
+        // Извлекаем массив id из связанных дат тренировок
+        const dateTrainingIds = training.trainigDates.map((date: TrainingDates) => date.id);
+    
+        return dateTrainingIds;
+    }
+    
 
     private formatTrainingDate(startDate: Date, endDate: Date): string {
         const format = 'DD.MM.YYYY HH:mm';
