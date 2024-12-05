@@ -11,6 +11,7 @@ import * as moment from 'moment-timezone';
 import { WhatsAppService } from 'src/whatsapp/whatsapp/whatsapp.service';
 import { TrainingService } from 'src/training/training.service';
 import {parsePhoneNumberFromString} from 'libphonenumber-js';
+import { UserService } from 'src/user/user.service';
 @Injectable()
 export class ApplicationService {
     constructor(@InjectModel(Application) private applicationRepository: typeof Application,
@@ -18,53 +19,46 @@ export class ApplicationService {
         private readonly whatsappService: WhatsAppService,
         @Inject(forwardRef(() => TrainingService))
         private readonly trainingService: TrainingService,
+        private readonly userService: UserService
 
     ) { }
 
     // Создание новой заявки
     async createApplication(dto: CreateApplicationDto): Promise<Application> {
-        console.log('Starting createApplication process');
     
-        // Поиск TrainingDate
         const trainingDate = await this.trainingDatesRepository.findByPk(dto.trainingDatesId);
         if (!trainingDate) {
             throw new NotFoundException(`TrainingDates with ID ${dto.trainingDatesId} not found`);
         }
     
-        // Форматирование номера телефона
         const formattedPhone = this.formatPhoneNumber(dto.playerPhone);
     
-        // Проверка номера телефона
-        console.log('Validating phone number ' + formattedPhone);
         const isRegistered = await this.whatsappService.isWhatsAppRegistered(formattedPhone);
         if (!isRegistered) {
             console.error('Invalid phone number');
             throw new BadRequestException(`Ungültige Telefonnummer: WhatsApp konnte Ihre Nummer nicht finden.`);
         }
-        console.log('Phone number is valid');
-    
-        // Создание записи в таблице Application
-        console.log('Creating new application with data:', dto);
-        const application = await this.applicationRepository.create(dto);
-        console.log('Created application:', application);
-    
-        // Получение информации о тренировке
-        console.log('Fetching training details for TrainingDates ID:', dto.trainingDatesId);
+        
+        const user = await this.userService.createNewUser({
+            username:dto.playerName,
+            phone: dto.playerPhone,
+            role: 'newPlayer'
+        })
+
+        const application = await this.applicationRepository.create({
+            playerComment: dto.playerComment,
+            trainingDatesId: dto.trainingDatesId,
+            isPresent: false,
+            userId: user.userId
+        });
+        
         const training = await this.trainingService.getTraining(dto.trainingDatesId);
-        console.log('Fetched training details:', training);
+
     
-        // Форматирование даты тренировки
-        console.log('Formatting training date:', trainingDate.startDate, trainingDate.endDate);
         const date = this.formatTrainingDate(trainingDate.startDate, trainingDate.endDate);
-        console.log('Formatted date:', date);
     
-        // Генерация ссылки для удаления заявки
-        console.log('Generating delete link');
         const deleteLink = `${process.env.FRONT_URL}?action=delete-anmeldung&application_id=${application.id}&playerName=${encodeURIComponent(dto.playerName)}&playerPhone=${encodeURIComponent(dto.playerPhone)}`;
-        console.log('Generated delete link:', deleteLink);
-    
-        // Создание сообщений для отправки
-        console.log('Creating messages for WhatsApp');
+
         const message = [
             `Hallo, ${dto.playerName}  \n`,
             'Ihre Anmeldung zum Probetraining war erfolgreich! Hier sind die Details:\n',
@@ -75,7 +69,6 @@ export class ApplicationService {
             'Wir freuen uns darauf, Sie beim Training zu sehen!\n',
             'Mit freundlichen Grüßen,\n Tennisschule Gorovits Team'
         ].join('').trim();
-        console.log('Message for player:', message);
     
         const groupMessage = [
             `*Neue Registrierung für das Probetraining*\n`,
@@ -87,33 +80,25 @@ export class ApplicationService {
 
             dto.playerComment ? `\n*Kommentar:* ${dto.playerComment}` : ''
         ].join('').trim();
-        console.log('Message for group:', groupMessage);
     
-        // Запуск отправки сообщений в отдельном потоке
         setImmediate(async () => {
-            console.log('Sending messages via WhatsApp asynchronously');
             try {
-                console.log('Sending message to player:', formattedPhone);
                 await this.whatsappService.sendMessage(formattedPhone, message);
-                console.log('Player message sent');
-    
-                console.log('Sending message to group');
                 await this.whatsappService.sendMessageToGroup(groupMessage);
-                console.log('Group message sent');
             } catch (error) {
-                console.error('Ошибка при отправке сообщения в WhatsApp:', error);
-                // Логируем ошибку, но не прерываем основной процесс
+                console.error(error);
+                throw new HttpException(
+                    error.message || 'Internal Server Error',
+                    error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+                );
             }
         });
     
         console.log('Application process completed');
-        return application; // Ответ возвращается сразу
+        return application; 
     }
     
     
-    
-    
-
     async getApplicationsByTrainingDateId(trainingDatesId: number) {
         return this.applicationRepository.findAll({ where: { trainingDatesId } });
     }

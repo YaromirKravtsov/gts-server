@@ -39,9 +39,8 @@ export class UserController {
         return await this.userService.getAllUsers();
     }
 
-
-/*     @Roles(['admin'])
-    @UseGuards(RoleGuard) */
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
     @Get('/search-players')
     @ApiOperation({ summary: 'Search players' })
     @ApiQuery({ name: 'searchQuery'})
