@@ -10,8 +10,10 @@ import { TrainingDates } from 'src/training/trainig-dates.model';
 import * as moment from 'moment-timezone';
 import { WhatsAppService } from 'src/whatsapp/whatsapp/whatsapp.service';
 import { TrainingService } from 'src/training/training.service';
-import {parsePhoneNumberFromString} from 'libphonenumber-js';
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
 import { UserService } from 'src/user/user.service';
+import { AddRegularPlayerToTraing } from './dto/add-regular-player-to-training.dto';
+import { User } from 'src/user/user.model';
 @Injectable()
 export class ApplicationService {
     constructor(@InjectModel(Application) private applicationRepository: typeof Application,
@@ -24,23 +26,23 @@ export class ApplicationService {
     ) { }
 
     // Создание новой заявки
-    async createApplication(dto: CreateApplicationDto): Promise<Application> {
-    
+    async createApplication(dto: CreateApplicationDto) {
+
         const trainingDate = await this.trainingDatesRepository.findByPk(dto.trainingDatesId);
         if (!trainingDate) {
             throw new NotFoundException(`TrainingDates with ID ${dto.trainingDatesId} not found`);
         }
-    
+
         const formattedPhone = this.formatPhoneNumber(dto.playerPhone);
-    
+
         const isRegistered = await this.whatsappService.isWhatsAppRegistered(formattedPhone);
         if (!isRegistered) {
             console.error('Invalid phone number');
             throw new BadRequestException(`Ungültige Telefonnummer: WhatsApp konnte Ihre Nummer nicht finden.`);
         }
-        
+
         const user = await this.userService.createNewUser({
-            username:dto.playerName,
+            username: dto.playerName,
             phone: dto.playerPhone,
             role: 'newPlayer'
         })
@@ -49,14 +51,14 @@ export class ApplicationService {
             playerComment: dto.playerComment,
             trainingDatesId: dto.trainingDatesId,
             isPresent: false,
-            userId: user.userId
+            userId: user.id
         });
-        
+
         const training = await this.trainingService.getTraining(dto.trainingDatesId);
 
-    
+
         const date = this.formatTrainingDate(trainingDate.startDate, trainingDate.endDate);
-    
+
         const deleteLink = `${process.env.FRONT_URL}?action=delete-anmeldung&application_id=${application.id}&playerName=${encodeURIComponent(dto.playerName)}&playerPhone=${encodeURIComponent(dto.playerPhone)}`;
 
         const message = [
@@ -69,7 +71,7 @@ export class ApplicationService {
             'Wir freuen uns darauf, Sie beim Training zu sehen!\n',
             'Mit freundlichen Grüßen,\n Tennisschule Gorovits Team'
         ].join('').trim();
-    
+
         const groupMessage = [
             `*Neue Registrierung für das Probetraining*\n`,
             `*Zeit:* ${date}\n`,
@@ -80,7 +82,7 @@ export class ApplicationService {
 
             dto.playerComment ? `\n*Kommentar:* ${dto.playerComment}` : ''
         ].join('').trim();
-    
+
         setImmediate(async () => {
             try {
                 await this.whatsappService.sendMessage(formattedPhone, message);
@@ -93,22 +95,100 @@ export class ApplicationService {
                 );
             }
         });
-    
+
         console.log('Application process completed');
-        return application; 
+        return application;
+    }
+
+    async addRegularPlayerToTraining(dto: AddRegularPlayerToTraing) {
+
+        const { userId, trainingDatesId } = dto;
+        const player = await this.userService.getUser(userId);
+
+        if (!player) {
+            throw new HttpException('Player wurde nicht gefunden', HttpStatus.NOT_FOUND);
+        }
+
+        const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId)
+
+        if (!trainingDate) {
+            throw new HttpException('Training wurde nicht gefunden', HttpStatus.NOT_FOUND);
+        }
+
+        const application = await this.applicationRepository.create({
+            isPresent: false,
+            trainingDatesId,
+            userId
+
+        })
+        return application;
+    }
+
+    async addRegularPlayerToAllTraining(dto) {
+        const { userId, trainingId } = dto;
+        const player = await this.userService.getUser(userId);
+    
+        if (!player) {
+            throw new HttpException('Player wurde nicht gefunden', HttpStatus.NOT_FOUND);
+        }
+    
+        const dateTraingsIds = await this.trainingService.getDateTraingsIdsByDateTraingId(trainingId);
+    
+        if (!dateTraingsIds) {
+            throw new HttpException('Training wurde nicht gefunden', HttpStatus.NOT_FOUND);
+        }
+    
+        const applications = [];
+    
+        for (const trainingDatesId of dateTraingsIds) {
+            const application = await this.applicationRepository.create({
+                isPresent: false,
+                trainingDatesId,
+                userId,
+            });
+            applications.push(application);
+        }
+    
+        return applications;
     }
     
+
+    async deletePlayerApplication(applicationId: number) {
+        const application = await this.applicationRepository.findByPk(applicationId)
+        if (!application) {
+            throw new HttpException('Anmeldung wurde nicht gefunden', HttpStatus.NOT_FOUND);
+        }
+        await application.destroy();
+
+        return;
+    }
+
+
+    async deleteAllPlayerApplicationToThisTraining(dto) {
+        const { trainingId, userId } = dto;
+        console.log('Training ID:', trainingId, 'User ID:', userId);
     
+        const dateTraingsIds = await this.trainingService.getDateTraingsIdsByDateTraingId(trainingId);
+    
+        if (!Array.isArray(dateTraingsIds) || dateTraingsIds.length === 0) {
+            throw new HttpException('Anmeldung wurde nicht gefunden', HttpStatus.NOT_FOUND);
+        }
+        console.log('Date Training IDs:', dateTraingsIds);
+    
+        await this.applicationRepository.destroy({
+            where: {
+                trainingDatesId: dateTraingsIds,
+                userId: userId,
+            },
+        });
+    
+        return;
+    }
+    
+
     async getApplicationsByTrainingDateId(trainingDatesId: number) {
         return this.applicationRepository.findAll({ where: { trainingDatesId } });
     }
-    
-  /*   async getApplicationsByTrainingId(trainingId: number): Promise<Application[]> {
-        return await this.applicationRepository.findAll({
-            where: {id: trainingId },
-        });
-    } */
-    
 
     // Получение заявок за месяц
     async getByMonthApplication(date: string) {
@@ -140,6 +220,9 @@ export class ApplicationService {
                         },
                     ],
                 },
+                {
+                    model: User
+                }
             ],
             order: [['trainingDates', 'startDate', 'ASC']], // Изменено на 'startDate'
         });
@@ -148,7 +231,7 @@ export class ApplicationService {
         return applications.map(application => ({
             id: application.id,
             trainingDatesId: application.trainingDatesId,
-/*             playerName: application.playerName, */
+            playerName: application.user.username,
             startDate: moment.tz(application.trainingDates.startDate, 'Europe/Berlin').format(),
             endDate: moment.tz(application.trainingDates.endDate, 'Europe/Berlin').format(),
             location: application.trainingDates.training.location,
@@ -157,8 +240,6 @@ export class ApplicationService {
     }
     //
     async geApplication(id: number) {
-        console.log(id);
-
         const application = await this.applicationRepository.findOne({
             where: { id },
             include: [
@@ -175,17 +256,20 @@ export class ApplicationService {
                         },
                     ],
                 },
+                {
+                    model: User
+                }
             ],
+
             /*  order: [['trainingDates', 'startDate', 'ASC']], */
         });
 
-        // Форматируем результат в нужный вид
-        //DOTO прееделать передачу playerName и playerPhone через таблицу юзеров. Сохранить название параметров
+
         return {
             trainingDatesId: application.trainingDatesId,
-     /*        playerName: application.playerName, */
+            playerName: application.user.username,
             playerComment: application.playerComment,
-   /*          playerPhone: application.playerPhone, */
+            playerPhone: application.user.phone,
             startDate: moment.tz(application.trainingDates.startDate, 'Europe/Berlin').format(),
             endDate: moment.tz(application.trainingDates.endDate, 'Europe/Berlin').format(),
             location: application.trainingDates.training.location,
@@ -196,7 +280,7 @@ export class ApplicationService {
     async destroyApplication(id: number) {
         const application = await this.applicationRepository.findOne({
             where: {
-                id, 
+                id,
             }
         });
         if (!application) {
@@ -206,8 +290,7 @@ export class ApplicationService {
             where: { id },
         });
     }
-    
-    //TODO Переделать логику удаления записи Application. Создавать какой-то ключ и передавать его 
+
     async deleteApplication(id: string, playerName: string, playerPhone: string) {
         const application = await this.applicationRepository.findOne({
             where: {
@@ -225,6 +308,21 @@ export class ApplicationService {
         });
     }
 
+    async putIsPresent(applicationId:number) {
+        console.log('applicationId putIsPresent ' + applicationId);
+        const application = await this.applicationRepository.findByPk(applicationId);
+        if (!application) {
+            throw new NotFoundException(`Die Registrierung wurde nicht gefunden`);
+        }
+        await application.update({
+            isPresent: !application.isPresent
+        })
+        return {
+            id: application.id,
+            isPresent: application.isPresent
+        }
+
+    }
 
     // 
     adjustTrainingDates(trainingDate: Date, time: Date): Date {
@@ -242,26 +340,25 @@ export class ApplicationService {
     // Метод для форматирования телефона
     private formatPhoneNumber(phone: string): string {
         let cleanedPhone = phone.replace(/\D/g, ''); // Удалить все символы, кроме цифр
-    
+
         if (phone.startsWith('+')) {
             // Если номер уже начинается с "+" — убираем всё кроме цифр и возвращаем
             return phone.replace(/\s/g, ''); // Удалить пробелы, но оставить "+"
         }
-    
+
         if (cleanedPhone.startsWith('0')) {
             // Если номер начинается с "0", предполагаем, что это немецкий номер
             cleanedPhone = '49' + cleanedPhone.slice(1); // Заменяем "0" на код страны "49"
         }
-    
+
         // Если номер начинается с кода "49" (Германия) или других международных кодов, возвращаем
         if (cleanedPhone.startsWith('49') || cleanedPhone.startsWith('380')) {
             return '+' + cleanedPhone; // Добавляем "+" в начале, если его нет
         }
-    
+
         console.log('Invalid phone number format');
         throw new Error('Invalid phone number format');
     }
-    
 
     // Метод для форматирования даты в нужном формате
     private formatTrainingDate(startDate: Date, endDate: Date): string {
@@ -277,14 +374,14 @@ export class ApplicationService {
         if (!phoneNumber?.isValid()) {
             return false;
         }
-    
+
         // Проверяем регистрацию номера в WhatsApp
         const isRegistered = await this.whatsappService.isWhatsAppRegistered(phoneNumber.number);
         console.log(isRegistered)
         return isRegistered;
     }
-    
-    
-    
+
+
+
 
 }
