@@ -13,6 +13,7 @@ import { TrainingService } from 'src/training/training.service';
 import { parsePhoneNumberFromString } from 'libphonenumber-js';
 import { UserService } from 'src/user/user.service';
 import { AddRegularPlayerToTraing } from './dto/add-regular-player-to-training.dto';
+import { User } from 'src/user/user.model';
 @Injectable()
 export class ApplicationService {
     constructor(@InjectModel(Application) private applicationRepository: typeof Application,
@@ -122,17 +123,40 @@ export class ApplicationService {
         })
         return application;
     }
-    
+
+    async addRegularPlayerToAllTraining(dto: AddRegularPlayerToTraing) {
+
+
+        const { userId, trainingDatesId } = dto
+        const player = await this.userService.getUser(userId);
+
+        if (!player) {
+            throw new HttpException('Player wurde nicht gefunden', HttpStatus.NOT_FOUND);
+        }
+
+
+        const dateTraingsIds = await this.trainingService.getDateTraingsIdsByDateTraingId(trainingDatesId);
+
+        if (!dateTraingsIds) {
+            throw new HttpException('Training wurde nicht gefunden', HttpStatus.NOT_FOUND);
+        }
+        const applications = [];
+        dateTraingsIds.map(async trainingDatesId => {
+            const application = await this.applicationRepository.create({
+                isPresent: false,
+                trainingDatesId,
+                userId
+            });
+
+            applications.push(application)
+        })
+
+        return applications;
+    }
+
     async getApplicationsByTrainingDateId(trainingDatesId: number) {
         return this.applicationRepository.findAll({ where: { trainingDatesId } });
     }
-
-    /*   async getApplicationsByTrainingId(trainingId: number): Promise<Application[]> {
-          return await this.applicationRepository.findAll({
-              where: {id: trainingId },
-          });
-      } */
-
 
     // Получение заявок за месяц
     async getByMonthApplication(date: string) {
@@ -164,6 +188,9 @@ export class ApplicationService {
                         },
                     ],
                 },
+                {
+                    model: User
+                }
             ],
             order: [['trainingDates', 'startDate', 'ASC']], // Изменено на 'startDate'
         });
@@ -172,7 +199,7 @@ export class ApplicationService {
         return applications.map(application => ({
             id: application.id,
             trainingDatesId: application.trainingDatesId,
-            /*             playerName: application.playerName, */
+            playerName: application.user.username,
             startDate: moment.tz(application.trainingDates.startDate, 'Europe/Berlin').format(),
             endDate: moment.tz(application.trainingDates.endDate, 'Europe/Berlin').format(),
             location: application.trainingDates.training.location,
@@ -181,8 +208,6 @@ export class ApplicationService {
     }
     //
     async geApplication(id: number) {
-        console.log(id);
-
         const application = await this.applicationRepository.findOne({
             where: { id },
             include: [
@@ -199,17 +224,20 @@ export class ApplicationService {
                         },
                     ],
                 },
+                {
+                    model: User
+                }
             ],
+
             /*  order: [['trainingDates', 'startDate', 'ASC']], */
         });
 
-        // Форматируем результат в нужный вид
-        //DOTO прееделать передачу playerName и playerPhone через таблицу юзеров. Сохранить название параметров
+
         return {
             trainingDatesId: application.trainingDatesId,
-            /*        playerName: application.playerName, */
+            playerName: application.user.username,
             playerComment: application.playerComment,
-            /*          playerPhone: application.playerPhone, */
+            playerPhone: application.user.phone,
             startDate: moment.tz(application.trainingDates.startDate, 'Europe/Berlin').format(),
             endDate: moment.tz(application.trainingDates.endDate, 'Europe/Berlin').format(),
             location: application.trainingDates.training.location,
@@ -231,7 +259,6 @@ export class ApplicationService {
         });
     }
 
-    //TODO Переделать логику удаления записи Application. Создавать какой-то ключ и передавать его 
     async deleteApplication(id: string, playerName: string, playerPhone: string) {
         const application = await this.applicationRepository.findOne({
             where: {
@@ -248,7 +275,6 @@ export class ApplicationService {
             where: { id },
         });
     }
-
 
     // 
     adjustTrainingDates(trainingDate: Date, time: Date): Date {
@@ -285,7 +311,6 @@ export class ApplicationService {
         console.log('Invalid phone number format');
         throw new Error('Invalid phone number format');
     }
-
 
     // Метод для форматирования даты в нужном формате
     private formatTrainingDate(startDate: Date, endDate: Date): string {
