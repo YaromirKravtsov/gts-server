@@ -29,6 +29,8 @@ describe('LocationController (e2e)', () => {
         await app.init();
 
         sequelize = app.get<Sequelize>(Sequelize); // Получаем экземпляр Sequelize
+
+
     });
 
     beforeEach(async () => {
