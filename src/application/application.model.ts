@@ -1,10 +1,9 @@
 
 import {Model, Column, DataType, Table, HasMany, ForeignKey, BelongsTo } from "sequelize-typescript";
 import { TrainingDates } from "src/training/trainig-dates.model";
+import { User } from "src/user/user.model";
 
 interface ApplicationCreationAttrs{
-    playerName: string;
-    playerPhone: string;
     playerComment?:string;
     trainingDatesId: number;
     isPresent: boolean
@@ -14,24 +13,27 @@ export class Application extends Model<Application,ApplicationCreationAttrs>{
 
     @Column({type:DataType.INTEGER, unique:true, autoIncrement:true, primaryKey:true})
     id:number;
+
+    @Column({type:DataType.STRING, allowNull:true})
+    playerComment:string;
+
+    @Column({type:DataType.BOOLEAN, allowNull:false})
+    isPresent: boolean
+        
+    @Column({type:DataType.TEXT, allowNull:true})
+    adminComment:string;
     
     @ForeignKey(()=> TrainingDates) 
     @Column({type: DataType.INTEGER, allowNull: false})
     trainingDatesId: number;
     @BelongsTo(()=> TrainingDates)
     trainingDates: TrainingDates;
-    
-    @Column({type:DataType.STRING, allowNull:false})
-    playerName: string
 
-        
-    @Column({type:DataType.BOOLEAN, allowNull:false})
-    isPresent: boolean
 
-    @Column({type:DataType.STRING, allowNull:true})
-    playerPhone: string;
-
-    @Column({type:DataType.STRING, allowNull:true})
-    playerComment:string;
+    @ForeignKey(()=> User) 
+    @Column({type: DataType.INTEGER, allowNull: false})
+    userId: number;
+    @BelongsTo(()=> User)
+    user: User;
 
 }

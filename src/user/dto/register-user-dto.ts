@@ -1,17 +1,26 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsString,MaxLength } from "class-validator";
+import { IsOptional, IsString,MaxLength, MinLength } from "class-validator";
 
 
 export class RegisterUserDto {
-    @IsString({ message: 'Имя должно быть строкой' })
-    @MaxLength(10, { message: 'username не может быть больше 10' })
+    @IsString({ message: 'Der Name muss eine Zeichenfolge sein' })
     @ApiProperty({})
     readonly username:string;
-    
-    @ApiProperty({})
-    @IsString({ message: 'Имя должно быть строкой' })
-    @MaxLength(10, { message: 'password не может быть больше 10' })
-    readonly password:string;
-    
+
+    @ApiProperty({ required: false }) 
+    @IsString({ message: 'Telefon muss eine Zeichenfolge sein' })
+    @IsOptional()
+    @MinLength(7, { message: 'Das Passwort darf nicht kleiner als 7 sein' })
+    readonly phone?:string;
+
+    @ApiProperty({ required: false }) 
+    @IsOptional()
+    @IsString({ message: 'Email muss eine Zeichenfolge sein' })
+    readonly email?:string;
+
+/*     @ApiProperty({ required: false }) 
+    @IsOptional()
+    @IsString({ message: 'Email muss eine Zeichenfolge sein' }) */
+    readonly role?: string;
 }
 

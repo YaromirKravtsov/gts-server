@@ -14,6 +14,7 @@ import * as moment from 'moment-timezone';
 import { WhatsAppService } from 'src/whatsapp/whatsapp/whatsapp.service';
 import { ApplicationService } from 'src/application/application.service';
 import { Application } from 'src/application/application.model';
+import { User } from 'src/user/user.model';
 
 @Injectable()
 export class TrainingService {
@@ -249,8 +250,9 @@ export class TrainingService {
                     ],
                 },
                 {
-                    model: Application, // Включаем связанные заявки
-                },
+                    model: Application,
+                    include: [User]
+                }
             ],
         });
 
@@ -278,11 +280,9 @@ export class TrainingService {
 
         console.log(`Начинаем процесс удаления тренировки с ID: ${trainingDatesId}`);
 
-        // Начинаем транзакцию
         const transaction = await this.trainingDatesRepository.sequelize.transaction();
 
         try {
-            // Получаем тренировочную дату
             const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId, { transaction });
             console.log('Получили тренировочную дату из базы данных:', trainingDate);
 
@@ -291,15 +291,12 @@ export class TrainingService {
                 throw new NotFoundException(`TrainingDates with ID ${trainingDatesId} not found`);
             }
 
-            // Форматируем дату тренировки
             const date = this.formatTrainingDate(trainingDate.startDate, trainingDate.endDate);
             console.log('Форматированная дата тренировки:', date);
 
-            // Получаем детали тренировки
             const training = await this.getTraining(trainingDatesId);
             console.log('Получили детали тренировки:', training);
 
-            // Создаем сообщение об отмене тренировки
             const cancellationMessage = [
                 `Die Trainingseinheit, die am ${date} stattgefunden hätte, wurde leider abgesagt.\n`,
                 `Der Trainingsort war geplant als: ${training.location.locationName}.\n`,
@@ -309,22 +306,17 @@ export class TrainingService {
             ].join(' ').trim();
             console.log('Сформировано сообщение об отмене:', cancellationMessage);
 
-            // Получаем все заявки, связанные с тренировкой
             const applications = await this.applicationService.getApplicationsByTrainingDateId(trainingDatesId);
             console.log(`Получено ${applications.length} заявок, связанных с тренировкой.`);
 
-            // Удаляем все заявки
             for (const application of applications) {
                 try {
-
-                    const formattedPhone = this.formatPhoneNumber(application.playerPhone);
+                    const formattedPhone = this.formatPhoneNumber(application.user.phone);
                     console.log(`Обработка заявки ID: ${application.id}, телефон игрока: ${formattedPhone}`);
 
-                    // Отправка сообщения
                     await this.whatsAppService.sendMessage(formattedPhone, cancellationMessage);
                     console.log(`Сообщение успешно отправлено игроку ${formattedPhone}`);
 
-                    // Удаление заявки
                     await this.applicationService.destroyApplication(application.id);
                     console.log(`Заявка ID ${application.id} успешно удалена`);
                 } catch (error) {
@@ -382,7 +374,10 @@ export class TrainingService {
 
         const trainingDates = await this.trainingDatesRepository.findAll({
             where: { trainingId },
-            include: [Application], // Загружаем заявки на каждую дату тренировки
+            include:  {
+                model: Application,
+                include: [User]
+            }, // Загружаем заявки на каждую дату тренировки
         });
 
 
@@ -395,7 +390,8 @@ export class TrainingService {
             }
 
             for (const application of date.applications) {
-                const formattedPhone = this.formatPhoneNumber(application.playerPhone);
+
+                const formattedPhone = this.formatPhoneNumber(application.user.phone);
 
                 try {
                     await this.whatsAppService.sendMessage(
@@ -461,8 +457,8 @@ export class TrainingService {
 
         // Отправляем уведомление всем участникам, зарегистрированным на обновленную дату
         for (const application of trainingDate.applications) {
-            const formattedPhone = this.formatPhoneNumber(application.playerPhone);
 
+            const formattedPhone = this.formatPhoneNumber(application.user.phone);
             setTimeout(async () => {
                 try {
                     await this.whatsAppService.sendMessage(formattedPhone, rescheduleMessage);
@@ -479,25 +475,34 @@ export class TrainingService {
     async updateAll(dto: UpdateTrainingDto): Promise<{ message: string }> {
         const { trainingDatesId, startTime, endTime } = dto;
 
-        // Находим существующую запись в TrainingDates
         const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId);
         if (!trainingDate) {
             throw new NotFoundException(`TrainingDate with ID ${trainingDatesId} not found`);
         }
 
-        // Находим основную запись в Training и загружаем связанные данные
         const training = await this.trainingRepository.findByPk(trainingDate.trainingId, {
             include: [
-                { model: TrainingDates, include: [Application] },
+                {
+                    model: TrainingDates,
+                    include:
+                        [
+                            {
+                                model: Application,
+                                include: [User]
+                            }
+                        ]
+                },
+
                 { model: Location },
                 { model: Group }
             ],
         });
+
+        
         if (!training) {
             throw new NotFoundException(`Training with ID ${trainingDate.trainingId} not found`);
         }
 
-        // Проверка наличия связанных данных
         if (!training.location) {
             throw new NotFoundException(`Location for Training with ID ${trainingDate.trainingId} not found`);
         }
@@ -506,11 +511,9 @@ export class TrainingService {
             throw new NotFoundException(`Group for Training with ID ${trainingDate.trainingId} not found`);
         }
 
-        // Устанавливаем только время (час и минуты) для обновления
         const newStartTime = moment(startTime).format('HH:mm');
         const newEndTime = moment(endTime).format('HH:mm');
 
-        // Обновляем только время для всех связанных дат тренировок
         const updatedTrainingDates = [];
         for (const date of training.trainigDates) {
             const updatedStartDate = moment(date.startDate).set({
@@ -531,7 +534,6 @@ export class TrainingService {
             updatedTrainingDates.push({ startDate: updatedStartDate, endDate: updatedEndDate });
         }
 
-        // Формируем сообщение для уведомлений
         const newDateMessage = [
             `Die Trainingseinheit wurde auf eine neue Zeit verlegt.\n`,
             `*Neue Zeitpunkte:* Die ersten Trainingseinheiten beginnen um ${newStartTime} und enden um ${newEndTime}.\n`,
@@ -544,7 +546,9 @@ export class TrainingService {
 
         for (const date of training.trainigDates) {
             for (const application of date.applications) {
-                const formattedPhone = this.formatPhoneNumber(application.playerPhone);
+              
+
+                const formattedPhone = this.formatPhoneNumber(application.user.phone);
 
                 setTimeout(async () => {
                     try {
@@ -579,11 +583,11 @@ export class TrainingService {
         }
 
         if (cleanedPhone.startsWith('0')) {
-            cleanedPhone = '49' + cleanedPhone.slice(1); 
+            cleanedPhone = '49' + cleanedPhone.slice(1);
         }
 
         if (cleanedPhone.startsWith('49') || cleanedPhone.startsWith('380')) {
-            return '+' + cleanedPhone; 
+            return '+' + cleanedPhone;
         }
 
         console.log('Invalid phone number format');
