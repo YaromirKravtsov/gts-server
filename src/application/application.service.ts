@@ -10,8 +10,9 @@ import { TrainingDates } from 'src/training/trainig-dates.model';
 import * as moment from 'moment-timezone';
 import { WhatsAppService } from 'src/whatsapp/whatsapp/whatsapp.service';
 import { TrainingService } from 'src/training/training.service';
-import {parsePhoneNumberFromString} from 'libphonenumber-js';
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
 import { UserService } from 'src/user/user.service';
+import { AddRegularPlayerToTraing } from './dto/add-regular-player-to-training.dto';
 @Injectable()
 export class ApplicationService {
     constructor(@InjectModel(Application) private applicationRepository: typeof Application,
@@ -25,22 +26,22 @@ export class ApplicationService {
 
     // Создание новой заявки
     async createApplication(dto: CreateApplicationDto): Promise<Application> {
-    
+
         const trainingDate = await this.trainingDatesRepository.findByPk(dto.trainingDatesId);
         if (!trainingDate) {
             throw new NotFoundException(`TrainingDates with ID ${dto.trainingDatesId} not found`);
         }
-    
+
         const formattedPhone = this.formatPhoneNumber(dto.playerPhone);
-    
+
         const isRegistered = await this.whatsappService.isWhatsAppRegistered(formattedPhone);
         if (!isRegistered) {
             console.error('Invalid phone number');
             throw new BadRequestException(`Ungültige Telefonnummer: WhatsApp konnte Ihre Nummer nicht finden.`);
         }
-        
+
         const user = await this.userService.createNewUser({
-            username:dto.playerName,
+            username: dto.playerName,
             phone: dto.playerPhone,
             role: 'newPlayer'
         })
@@ -51,12 +52,12 @@ export class ApplicationService {
             isPresent: false,
             userId: user.userId
         });
-        
+
         const training = await this.trainingService.getTraining(dto.trainingDatesId);
 
-    
+
         const date = this.formatTrainingDate(trainingDate.startDate, trainingDate.endDate);
-    
+
         const deleteLink = `${process.env.FRONT_URL}?action=delete-anmeldung&application_id=${application.id}&playerName=${encodeURIComponent(dto.playerName)}&playerPhone=${encodeURIComponent(dto.playerPhone)}`;
 
         const message = [
@@ -69,7 +70,7 @@ export class ApplicationService {
             'Wir freuen uns darauf, Sie beim Training zu sehen!\n',
             'Mit freundlichen Grüßen,\n Tennisschule Gorovits Team'
         ].join('').trim();
-    
+
         const groupMessage = [
             `*Neue Registrierung für das Probetraining*\n`,
             `*Zeit:* ${date}\n`,
@@ -80,7 +81,7 @@ export class ApplicationService {
 
             dto.playerComment ? `\n*Kommentar:* ${dto.playerComment}` : ''
         ].join('').trim();
-    
+
         setImmediate(async () => {
             try {
                 await this.whatsappService.sendMessage(formattedPhone, message);
@@ -93,22 +94,45 @@ export class ApplicationService {
                 );
             }
         });
-    
+
         console.log('Application process completed');
-        return application; 
+        return application;
     }
-    
+
+    async addRegularPlayerToTraining(dto: AddRegularPlayerToTraing) {
+
+        const { userId, trainingDatesId } = dto
+        const player = await this.userService.getUser(userId);
+
+        if (!player) {
+            throw new HttpException('Player wurde nicht gefunden', HttpStatus.NOT_FOUND);
+        }
+
+        const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId)
+
+        if (!trainingDate) {
+            throw new HttpException('Training wurde nicht gefunden', HttpStatus.NOT_FOUND);
+        }
+
+        const application = await this.applicationRepository.create({
+            isPresent: false,
+            trainingDatesId,
+            userId
+
+        })
+        return application;
+    }
     
     async getApplicationsByTrainingDateId(trainingDatesId: number) {
         return this.applicationRepository.findAll({ where: { trainingDatesId } });
     }
-    
-  /*   async getApplicationsByTrainingId(trainingId: number): Promise<Application[]> {
-        return await this.applicationRepository.findAll({
-            where: {id: trainingId },
-        });
-    } */
-    
+
+    /*   async getApplicationsByTrainingId(trainingId: number): Promise<Application[]> {
+          return await this.applicationRepository.findAll({
+              where: {id: trainingId },
+          });
+      } */
+
 
     // Получение заявок за месяц
     async getByMonthApplication(date: string) {
@@ -148,7 +172,7 @@ export class ApplicationService {
         return applications.map(application => ({
             id: application.id,
             trainingDatesId: application.trainingDatesId,
-/*             playerName: application.playerName, */
+            /*             playerName: application.playerName, */
             startDate: moment.tz(application.trainingDates.startDate, 'Europe/Berlin').format(),
             endDate: moment.tz(application.trainingDates.endDate, 'Europe/Berlin').format(),
             location: application.trainingDates.training.location,
@@ -183,9 +207,9 @@ export class ApplicationService {
         //DOTO прееделать передачу playerName и playerPhone через таблицу юзеров. Сохранить название параметров
         return {
             trainingDatesId: application.trainingDatesId,
-     /*        playerName: application.playerName, */
+            /*        playerName: application.playerName, */
             playerComment: application.playerComment,
-   /*          playerPhone: application.playerPhone, */
+            /*          playerPhone: application.playerPhone, */
             startDate: moment.tz(application.trainingDates.startDate, 'Europe/Berlin').format(),
             endDate: moment.tz(application.trainingDates.endDate, 'Europe/Berlin').format(),
             location: application.trainingDates.training.location,
@@ -196,7 +220,7 @@ export class ApplicationService {
     async destroyApplication(id: number) {
         const application = await this.applicationRepository.findOne({
             where: {
-                id, 
+                id,
             }
         });
         if (!application) {
@@ -206,7 +230,7 @@ export class ApplicationService {
             where: { id },
         });
     }
-    
+
     //TODO Переделать логику удаления записи Application. Создавать какой-то ключ и передавать его 
     async deleteApplication(id: string, playerName: string, playerPhone: string) {
         const application = await this.applicationRepository.findOne({
@@ -242,26 +266,26 @@ export class ApplicationService {
     // Метод для форматирования телефона
     private formatPhoneNumber(phone: string): string {
         let cleanedPhone = phone.replace(/\D/g, ''); // Удалить все символы, кроме цифр
-    
+
         if (phone.startsWith('+')) {
             // Если номер уже начинается с "+" — убираем всё кроме цифр и возвращаем
             return phone.replace(/\s/g, ''); // Удалить пробелы, но оставить "+"
         }
-    
+
         if (cleanedPhone.startsWith('0')) {
             // Если номер начинается с "0", предполагаем, что это немецкий номер
             cleanedPhone = '49' + cleanedPhone.slice(1); // Заменяем "0" на код страны "49"
         }
-    
+
         // Если номер начинается с кода "49" (Германия) или других международных кодов, возвращаем
         if (cleanedPhone.startsWith('49') || cleanedPhone.startsWith('380')) {
             return '+' + cleanedPhone; // Добавляем "+" в начале, если его нет
         }
-    
+
         console.log('Invalid phone number format');
         throw new Error('Invalid phone number format');
     }
-    
+
 
     // Метод для форматирования даты в нужном формате
     private formatTrainingDate(startDate: Date, endDate: Date): string {
@@ -277,14 +301,14 @@ export class ApplicationService {
         if (!phoneNumber?.isValid()) {
             return false;
         }
-    
+
         // Проверяем регистрацию номера в WhatsApp
         const isRegistered = await this.whatsappService.isWhatsAppRegistered(phoneNumber.number);
         console.log(isRegistered)
         return isRegistered;
     }
-    
-    
-    
+
+
+
 
 }

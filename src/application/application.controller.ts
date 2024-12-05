@@ -5,6 +5,7 @@ import { RoleGuard } from 'src/role/role.gurard';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { Response } from 'express';
+import { AddRegularPlayerToTraing } from './dto/add-regular-player-to-training.dto';
 
 @ApiTags('Applications') // Группирует все маршруты контроллера в разделе "Applications" в Swagger
 @Controller('applications')
@@ -18,7 +19,7 @@ export class ApplicationController {
     /*     @Roles(['admin'])
         @UseGuards(RoleGuard)
         @ApiBearerAuth() */
-    @Post()
+    @Post('/new-player')
     @ApiOperation({ summary: 'Create a new application' })
     @ApiBody({ type: CreateApplicationDto })
     @ApiResponse({ status: 201, description: 'The application has been successfully created.' })
@@ -33,6 +34,30 @@ export class ApplicationController {
             );
         }
     }
+
+
+
+    @Post('/add-regular')
+    @ApiOperation({ summary: 'Add regular player to training(only to this one)' })
+    @ApiBody({ type: AddRegularPlayerToTraing })
+    @ApiResponse({ status: 201, description: 'The application has been successfully created.' })
+    async addRegularPlayerToTraining(@Body() dto: AddRegularPlayerToTraing) {
+        try {
+            return await this.applicationService.addRegularPlayerToTraining(dto);
+        } catch (error) {
+            console.error(error);
+            throw new HttpException(
+                error.message || 'Internal Server Error',
+                error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    //TODO Сделать маршрут по добовления пользователя на все тренировки. 
+
+    //TODO Сделать маршрут по удаления игрока с одной тренировки. 
+    //TODO Сделать маршрут по удаления игрока со все тренировки. 
+    
 
     /**
      * Получение заявок за указанный месяц
