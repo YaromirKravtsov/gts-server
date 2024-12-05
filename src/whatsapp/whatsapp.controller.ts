@@ -11,7 +11,7 @@ export class WhatsappController {
         private readonly whatsappService: WhatsAppService,
         private readonly groupService: GroupService,
     ) {}
-
+/* 
     @Post('send-message')
     @ApiOperation({ summary: 'Send a message to a phone number' })
     @ApiBody({
@@ -30,7 +30,7 @@ export class WhatsappController {
     ) {
         await this.whatsappService.sendMessage(phone, message);
         return { status: 'Message sent' };
-    }
+    } */
 
    /*  @Post('create-group')
     @ApiOperation({ summary: 'Create a WhatsApp group' })
