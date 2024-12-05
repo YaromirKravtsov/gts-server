@@ -19,7 +19,7 @@ export class UserService {
 
     ) { }
 
-    async createNewUser(dto: RegisterUserDto,) {
+    async createNewUser(dto: RegisterUserDto) {
         try {
 
             const candidate = await this.userRepository.findOne({ where: { username: dto.username } });
@@ -35,7 +35,7 @@ export class UserService {
             const user = await this.userRepository.create({ ...dto });
 
             const returnData = {
-                userId: user.id,
+                id: user.id,
                 username: user.username
             }
             return returnData;
