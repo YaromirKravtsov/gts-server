@@ -12,8 +12,18 @@ import { EditUserDto } from './dto/edit-user.dto';
 export class UserController {
     constructor(private userService: UserService) { }
 
-    /*     @Roles(['admin'])
-        @UseGuards(RoleGuard) */
+
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
+    @Get('one/:id')
+    @ApiOperation({ summary: 'Create new user' })
+    @ApiParam({ name: 'id' })
+    async getUser(@Param() { id }) {
+        return await this.userService.getUser(id);
+    }
+
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
     @Post('/regularPlayer')
     @ApiOperation({ summary: 'Create new user' })
     @ApiBody({ type: RegisterUserDto })
@@ -21,6 +31,14 @@ export class UserController {
         return await this.userService.createNewUser({ ...dto, role: 'regularPlayer' });
     }
 
+
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
+    @Get('/players')
+    @ApiOperation({ summary: 'Get all users' })
+    async getAllUsers() {
+        return await this.userService.getAllUsers();
+    }
 
 
     @Roles(['admin'])
@@ -30,6 +48,16 @@ export class UserController {
     @ApiBody({ type: EditUserDto })
     async editPlayer(@Body() dto: EditUserDto) {
         return await this.userService.editPlayer(dto)
+    }
+
+
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
+    @Put('/convert/new-to-regular/:id')
+    @ApiOperation({ summary: 'Convert new user to regular' })
+    @ApiParam({ name: 'userId' })
+    async convertNewToRegular(@Param() {id} ) {
+        return await this.userService.convertNewToRegular(id)
     }
 
 

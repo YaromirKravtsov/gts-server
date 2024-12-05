@@ -29,10 +29,10 @@ export class User extends Model<User,UserCreationAttrs>{
     @Column({type:DataType.STRING, allowNull:true})
     email:string;
     
-    @Column({type:DataType.STRING, unique:true, allowNull:true})
+    @Column({type:DataType.STRING,  allowNull:true})
     password:string;
 
-    @Column({type:DataType.STRING, unique:true, allowNull:false})
+    @Column({type:DataType.STRING, allowNull:false})
     role:string;
     
     @Column({type:DataType.TEXT, allowNull:true})
