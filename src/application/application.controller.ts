@@ -15,17 +15,23 @@ export class ApplicationController {
     /**
      * Создание новой заявки
      */
-/*     @Roles(['admin'])
-    @UseGuards(RoleGuard)
-    @ApiBearerAuth() */
+    /*     @Roles(['admin'])
+        @UseGuards(RoleGuard)
+        @ApiBearerAuth() */
     @Post()
     @ApiOperation({ summary: 'Create a new application' })
     @ApiBody({ type: CreateApplicationDto })
     @ApiResponse({ status: 201, description: 'The application has been successfully created.' })
     async createApplication(@Body() dto: CreateApplicationDto) {
-
-        return await this.applicationService.createApplication(dto);
-
+        try {
+            return await this.applicationService.createApplication(dto);
+        } catch (error) {
+            console.error(error);
+            throw new HttpException(
+                error.message || 'Internal Server Error',
+                error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
     }
 
     /**

@@ -6,6 +6,7 @@ import { Application } from './application.model';
 import { TrainingDates } from 'src/training/trainig-dates.model';
 import { WhatsappModule } from 'src/whatsapp/whatsapp.module';
 import { TrainingModule } from 'src/training/training.module';
+import { UserModule } from 'src/user/user.module';
 
 @Module({
   providers: [ApplicationService],
@@ -14,6 +15,8 @@ import { TrainingModule } from 'src/training/training.module';
     SequelizeModule.forFeature([Application, TrainingDates]),
     forwardRef(() => WhatsappModule),
     forwardRef(() => TrainingModule),
+    UserModule
+    
   ],
   exports: [ApplicationService],
 })
