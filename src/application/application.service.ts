@@ -163,7 +163,7 @@ export class ApplicationService {
         return applications.map(application => ({
             id: application.id,
             trainingDatesId: application.trainingDatesId,
-            playerName: application.playerName,
+/*             playerName: application.playerName, */
             startDate: moment.tz(application.trainingDates.startDate, 'Europe/Berlin').format(),
             endDate: moment.tz(application.trainingDates.endDate, 'Europe/Berlin').format(),
             location: application.trainingDates.training.location,
@@ -195,11 +195,12 @@ export class ApplicationService {
         });
 
         // Форматируем результат в нужный вид
+        //DOTO прееделать передачу playerName и playerPhone через таблицу юзеров. Сохранить название параметров
         return {
             trainingDatesId: application.trainingDatesId,
-            playerName: application.playerName,
+     /*        playerName: application.playerName, */
             playerComment: application.playerComment,
-            playerPhone: application.playerPhone,
+   /*          playerPhone: application.playerPhone, */
             startDate: moment.tz(application.trainingDates.startDate, 'Europe/Berlin').format(),
             endDate: moment.tz(application.trainingDates.endDate, 'Europe/Berlin').format(),
             location: application.trainingDates.training.location,
@@ -220,11 +221,12 @@ export class ApplicationService {
             where: { id },
         });
     }
-
+    
+    //TODO Переделать логику удаления записи Application. Создавать какой-то ключ и передавать его 
     async deleteApplication(id: string, playerName: string, playerPhone: string) {
         const application = await this.applicationRepository.findOne({
             where: {
-                id, playerName, playerPhone
+                id, /* playerName, playerPhone */
             }
         })
         console.log(id, playerName, playerPhone)

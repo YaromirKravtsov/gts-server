@@ -7,6 +7,7 @@ import { hash, compare } from 'bcrypt';
 import { PayloadDto } from 'src/token/dto/payload.dto';
 import { TokenService } from 'src/token/token.service';
 import { SaveTokenDto } from 'src/token/dto/save-token.dto';
+import { EditUserDto } from './dto/edit-user.dto';
 
 
 @Injectable()
@@ -18,44 +19,75 @@ export class UserService {
 ) { }
 
     async createNewUser(dto: RegisterUserDto,) {
-     /*    try {
+        try {
+
             const candidate = await this.userRepository.findOne({ where: { username: dto.username } });
 
             if (candidate) {
-                throw new HttpException('Ein Benutzer mit dieser E-Mail-Adresse ist bereits registriert', HttpStatus.FORBIDDEN);
+                throw new HttpException('Ein Benutzer mit dieser Name ist bereits registriert', HttpStatus.FORBIDDEN);
             }
 
-            const hashPassword = await hash(dto.password, 3);
-            //===========================================
-            const user = await this.userRepository.create({ ...dto, role: 'user', password: hashPassword });
-            //===========================================
-
-
-
-            // Отправка письма по email с паролем и логином 
+            const user = await this.userRepository.create({ ...dto});
+            
             const returnData = {
-                password: dto.password,
                 userId: user.id
             }
             return returnData;
         } catch (error) {
             console.log(error)
             throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
-        } */
+        }
     }
+    
+
+    async editPlayer(dto: EditUserDto ) {
+        try {
+            const player = await this.userRepository.findByPk(dto.id);
+            
+            if (!player) {
+                throw new HttpException('Benutzername oder Passwort ist ungültig', HttpStatus.NOT_FOUND);
+            }
+
+            await player.update({
+                username: dto.username,
+                email: dto.email,
+                phone: dto.phone,
+                adminComment: dto.adminComment,
+            })
+        } catch (error) {
+            console.log(error)
+            throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
+    async deleteUser(id:number){
+        try{
+            const player = await this.userRepository.findByPk(id);
+            
+            if (!player) {
+                throw new HttpException('Benutzername oder Passwort ist ungültig', HttpStatus.NOT_FOUND);
+            }
+            
+            await player.destroy()
+            return;
+        }catch (e) {
+            console.error(e);
+            throw new HttpException(e, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
     async login(dto: LoginDto) {
         try {
             const user = await this.userRepository.findOne({ where: { username: dto.username } });
             if (!user) {
                 throw new HttpException('Benutzername oder Passwort ist ungültig', HttpStatus.NOT_FOUND);
             }
-            console.log(1111111111)
             const isPassEquals = await compare(dto.password, user.password);
 
             if (!isPassEquals) {
                 throw new HttpException('Benutzername oder Passwort ist ungültig', HttpStatus.BAD_REQUEST);
             }
-            console.log(22222222222)
             const payload: PayloadDto = {
                 userId: user.id,
                 role: user.role,
@@ -76,9 +108,6 @@ export class UserService {
             throw new HttpException(e, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-
-
 
     async findByPk(pk: number) {
         try {

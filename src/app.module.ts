@@ -20,7 +20,7 @@ import { Application } from './application/application.model';
 import { TrainingDates } from './training/trainig-dates.model';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
 import * as dotenv from 'dotenv';
-dotenv.config({ path: '.test.env' });
+/* dotenv.config({ path: '.test.env' }); */
 
 
 @Module({

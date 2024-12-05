@@ -11,7 +11,7 @@ module.exports = {
 
     await queryInterface.addColumn('user', 'phone', {
       type: Sequelize.STRING,
-      allowNull: true
+      allowNull: false
     })
 
     await queryInterface.addColumn('application', 'userId', {
