@@ -10,7 +10,8 @@ interface GroupCreationAttrs{
     groupUrl: string,
     color:string;
     visible: boolean;
-    order: number
+    order: number;
+    isToAdult: boolean
 }
 @Table({tableName:'group',createdAt:false, updatedAt:false})
 export class Group extends Model<Group,GroupCreationAttrs>{
@@ -32,6 +33,10 @@ export class Group extends Model<Group,GroupCreationAttrs>{
 
     @Column({type:DataType.INTEGER, allowNull:false})
     order:number;
+
+    
+    @Column({type:DataType.BOOLEAN, allowNull:false})
+    isToAdult:boolean;
 
     @HasMany(()=> Training)
     Trainings: Training[];

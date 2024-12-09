@@ -14,11 +14,11 @@ export class GroupService {
     async createGroup(dto: CreateGroupDto) {
         try {
             await this.groupRepository.increment('order', { by: 1, where: { order: { [Op.gte]: 0 } } });
-
             const group = await this.groupRepository.create({
                 ...dto,
                 order: 1,
                 visible: true,
+                isToAdult: false
             });
 
             return group;
@@ -60,6 +60,11 @@ export class GroupService {
         if (dto.color !== undefined) {
             group.color = dto.color;
         }
+
+        if (dto.isToAdult !== undefined) {
+            group.isToAdult = dto.isToAdult;
+        }
+
 
         await group.save();
         return group;
