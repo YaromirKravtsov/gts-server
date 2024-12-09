@@ -36,4 +36,6 @@ export class Application extends Model<Application,ApplicationCreationAttrs>{
     userId: number;
     @BelongsTo(()=> User)
     user: User;
+
+   
 }

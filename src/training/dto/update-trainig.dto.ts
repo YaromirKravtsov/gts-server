@@ -18,4 +18,8 @@ export class UpdateTrainingDto {
         description: 'TrainigDateId' 
     })
     trainingDatesId?: number;
+
+    @ApiProperty()
+    trainerId?: number;
+
 }

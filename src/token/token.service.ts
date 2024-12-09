@@ -61,7 +61,14 @@ export class TokenService {
         return tokenData;
     }
 
+    async removeAllTokensForUser(userId: number) {
+        await this.tokenRepository.destroy({
+            where: {
+                userId: userId,
+            },
+        });
 
+    }
     validateAccessToken(token) {
         try {
 
@@ -116,7 +123,7 @@ export class TokenService {
 
     generateDeviceId(): string {
         return crypto.randomBytes(Math.ceil(20 / 2))
-            .toString('hex') 
+            .toString('hex')
             .slice(0, 20);
     }
 
