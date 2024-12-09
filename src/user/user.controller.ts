@@ -12,10 +12,10 @@ import { EditUserDto } from './dto/edit-user.dto';
 export class UserController {
     constructor(private userService: UserService) { }
 
-    @Roles(['admin'])
+    @Roles(['admin','trainer'])
     @UseGuards(RoleGuard)
     @Get('one/:id')
-    @ApiOperation({ summary: 'Create new user' })
+    @ApiOperation({ summary: 'Create one user' })
     @ApiParam({ name: 'id' })
     async getUser(@Param() { id }) {
         return await this.userService.getUser(id);
@@ -23,11 +23,20 @@ export class UserController {
 
     @Roles(['admin'])
     @UseGuards(RoleGuard)
-    @Post('/regularPlayer')
+    @Post('/create')
     @ApiOperation({ summary: 'Create new user' })
     @ApiBody({ type: RegisterUserDto })
     async createRegularPlayer(@Body() dto: RegisterUserDto) {
-        return await this.userService.createNewUser({ ...dto, role: 'regularPlayer' });
+        return await this.userService.createNewUser(dto);
+    }
+
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
+    @Post('/trainer')
+    @ApiOperation({ summary: 'Create new Trainer' })
+    @ApiBody({ type: RegisterUserDto })
+    async createTrainer(@Body() dto: RegisterUserDto) {
+        return await this.userService.createTrainer(dto);
     }
 
 
@@ -39,17 +48,18 @@ export class UserController {
         return await this.userService.getAllUsers();
     }
 
-    @Roles(['admin'])
+    @Roles(['admin','trainer'])
     @UseGuards(RoleGuard)
     @Get('/search-players')
     @ApiOperation({ summary: 'Search players' })
-    @ApiQuery({ name: 'searchQuery'})
-    async searchPlayers(@Query('searchQuery') searchQuery:string) {
-        return await this.userService.searchPlayers(searchQuery);
+    @ApiQuery({ name: 'searchQuery', required: false})
+    @ApiQuery({ name: 'role', required: false})
+    async searchPlayers(@Query('searchQuery') searchQuery:string, @Query('role') role:string) {
+        return await this.userService.searchPlayers(searchQuery,role);
     }
 
 
-    @Roles(['admin'])
+    @Roles(['admin','trainer'])
     @UseGuards(RoleGuard)
     @Put('')
     @ApiOperation({ summary: 'Edit user' })
@@ -61,15 +71,16 @@ export class UserController {
 
     @Roles(['admin'])
     @UseGuards(RoleGuard)
-    @Put('/convert/new-to-regular/:id')
+    @Put('/convert/new-to-regular/:userId')
     @ApiOperation({ summary: 'Convert new user to regular' })
     @ApiParam({ name: 'userId' })
-    async convertNewToRegular(@Param() {id} ) {
-        return await this.userService.convertNewToRegular(id)
+    async convertNewToRegular(@Param() {userId} ) {
+        return await this.userService.convertNewToRegular(userId)
     }
 
 
-
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
     @Delete('/:id')
     @ApiOperation({ summary: 'Delete user' })
     @ApiParam({ name: 'id' })

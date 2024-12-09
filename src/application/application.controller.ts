@@ -37,11 +37,12 @@ export class ApplicationController {
     @Roles(['admin'])
     @UseGuards(RoleGuard)
     @ApiBearerAuth()
-    @Post('/regular')
+    @Post('/from-admin')
     @ApiOperation({ summary: 'Add regular player to training(only to this one)' })
     @ApiBody({ type: AddRegularPlayerToTraing })
     @ApiResponse({ status: 201, description: 'The application has been successfully created.' })
     async addRegularPlayerToTraining(@Body() dto: AddRegularPlayerToTraing) {
+        console.log(dto)
         try {
             return await this.applicationService.addRegularPlayerToTraining(dto);
         } catch (error) {
@@ -57,9 +58,9 @@ export class ApplicationController {
     @Roles(['admin'])
     @UseGuards(RoleGuard)
     @ApiBearerAuth()
-    @Post('/add-regular-to-all')
+    @Post('/from-admin-to-all')
     @ApiOperation({ summary: 'Add regular player to training for all trainigs of this type' })
-    @ApiQuery({ name: 'applicationId' })
+    @ApiQuery({ name: 'userId' })
     @ApiQuery({ name: 'trainingId' })
     async addRegularPlayerToAllTraining(@Query('userId') userId, @Query('trainingId') trainingId) {
         try {
@@ -115,7 +116,7 @@ export class ApplicationController {
 
 
 
-    @Roles(['admin'])
+    @Roles(['admin','trainer'])
     @UseGuards(RoleGuard)
     @ApiBearerAuth()
     @Put('/isPresent/:applicationId')

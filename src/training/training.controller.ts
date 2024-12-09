@@ -49,21 +49,22 @@ export class TrainingController {
     /**
      * Получение тренировок за указанный месяц
      */
-    @Roles(['admin'])
+    @Roles(['admin','trainer'])
     @UseGuards(RoleGuard)
     @ApiBearerAuth()
     @Get('date')
     @ApiOperation({ summary: 'Get trainings for a specific month' })
     @ApiQuery({ name: 'date', description: 'Date in YYYY-MM-DD format to define the month' })
+    @ApiQuery({ name: 'trainerId' ,required: false})
     @ApiResponse({ status: 200, description: 'List of trainings for the specified month.' })
-    async getTrainingsForMonth(@Query('date') date: string) {
-        return await this.trainingService.getTrainingsForMonth(date);
+    async getTrainingsForMonth(@Query('date') date: string, @Query('trainerId') trainerId: number) {
+        return await this.trainingService.getTrainingsForMonth(date,trainerId);
     }
 
     /**
      * Получение тренировки по ID
      */
-    @Roles(['admin'])
+    @Roles(['admin','trainer'])
     @UseGuards(RoleGuard)
     @Get('/:id')
     @ApiOperation({ summary: 'Get a training by ID' })

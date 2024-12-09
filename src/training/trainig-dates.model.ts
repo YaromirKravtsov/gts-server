@@ -4,6 +4,7 @@ import { Application } from "src/application/application.model";
 import { Group } from "../../src/group/group.model";
 import { Location } from "src/location/location.model";
 import { Training } from "./training.model";
+import { User } from "src/user/user.model";
 
 
 interface TrainingDatesCreationAttrs {
@@ -35,5 +36,11 @@ export class TrainingDates extends Model<TrainingDates, TrainingDatesCreationAtt
     @HasMany(() => Application)
     applications: Application[];
 
+
+    @ForeignKey(()=> User) 
+    @Column({type: DataType.INTEGER, allowNull: true})
+    trainerId: number;
+    @BelongsTo(()=> User)
+    trainer: User;
 }
 
