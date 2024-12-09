@@ -25,4 +25,9 @@ export class UpdateLocationDto {
     @IsOptional()
     @IsInt()
     order?: number;
+
+
+
+
+    
 }

@@ -60,14 +60,19 @@ export class ApplicationService {
         const date = this.formatTrainingDate(trainingDate.startDate, trainingDate.endDate);
 
         const deleteLink = `${process.env.FRONT_URL}?action=delete-anmeldung&application_id=${application.id}&playerName=${encodeURIComponent(dto.playerName)}&playerPhone=${encodeURIComponent(dto.playerPhone)}`;
-
+        console.log(trainingDate)
+        let trainer = null;
+        if(trainingDate.trainerId){
+            trainer = await this.userService.findByPk(trainingDate.trainerId)
+            
+        }
         const message = [
             `Hallo, ${dto.playerName}  \n`,
             'Ihre Anmeldung zum Probetraining war erfolgreich! Hier sind die Details:\n',
             `- *Zeit:* ${date}\n`,
             `- *Ort:* ${training.location.locationName}\n`,
             `- *Gruppe:* ${training.group.groupName}\n`,
-            training.trainigDates[0].trainer ? `*Trainer:* ${training.trainigDates[0].trainer.username}\n`: '',
+            trainingDate.trainerId ? `*Trainer:* ${trainer.username}\n`: '',
             `Falls Sie Ihre Anmeldung stornieren möchten, können Sie dies über folgenden Link tun: ${deleteLink}\n\n`,
             'Wir freuen uns darauf, Sie beim Training zu sehen!\n',
             'Mit freundlichen Grüßen,\n Tennisschule Gorovits Team'
@@ -86,7 +91,7 @@ export class ApplicationService {
 
         setImmediate(async () => {
             try {
-                await this.whatsappService.sendMessage(formattedPhone, message);
+                await this.whatsappService.sendMessage(formattedPhone, message, training.group.isToAdult);
                 await this.whatsappService.sendMessageToGroup(groupMessage);
             } catch (error) {
                 console.error(error);
