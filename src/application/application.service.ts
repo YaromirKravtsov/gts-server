@@ -21,6 +21,7 @@ export class ApplicationService {
         private readonly whatsappService: WhatsAppService,
         @Inject(forwardRef(() => TrainingService))
         private readonly trainingService: TrainingService,
+        @Inject(forwardRef(() => UserService))
         private readonly userService: UserService
 
     ) { }
@@ -91,6 +92,7 @@ export class ApplicationService {
 
         setImmediate(async () => {
             try {
+                //TODO После того как мариана напишет тексты для всех пользователей, то поменяться их 
                 await this.whatsappService.sendMessage(formattedPhone, message, training.group.isToAdult);
                 await this.whatsappService.sendMessageToGroup(groupMessage);
             } catch (error) {
@@ -398,6 +400,9 @@ export class ApplicationService {
         throw new Error('Invalid phone number format');
     }
 
+    public async deleteAllUserApplications(userId: number){
+        await this.applicationRepository.destroy({where: {userId}})
+    }
     // Метод для форматирования даты в нужном формате
     private formatTrainingDate(startDate: Date, endDate: Date): string {
         const format = 'DD.MM.YYYY HH:mm';

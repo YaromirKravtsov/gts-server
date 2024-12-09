@@ -177,21 +177,21 @@ export class TrainingService {
         const startDate = new Date(date);
         const year = startDate.getFullYear();
         const month = startDate.getMonth();
-    
+
         const monthStart = new Date(year, month, 1);
         const monthEnd = new Date(year, month + 1, 1);
-    
+
         const whereConditions: any = {
             startDate: {
                 [Op.gte]: monthStart,
                 [Op.lt]: monthEnd,
             },
         };
-    
+
         if (Number(trainerId)) {
             whereConditions.trainerId = trainerId;
         }
-    
+
         const trainingDates = await this.trainingDatesRepository.findAll({
             where: whereConditions,
             attributes: [
@@ -199,7 +199,7 @@ export class TrainingService {
                 'startDate',
                 'endDate',
                 [
-                    Sequelize.fn('COUNT', Sequelize.col('applications.id')), 
+                    Sequelize.fn('COUNT', Sequelize.col('applications.id')),
                     'applicationCount', // Добавляем поле для подсчёта
                 ],
             ],
@@ -220,7 +220,7 @@ export class TrainingService {
             group: ['TrainingDates.id'], // Группируем по TrainingDates
             order: [['startDate', 'ASC']],
         });
-    
+
         return trainingDates.map(trainingDate => ({
             trainingDatesId: trainingDate.id,
             startTime: moment.tz(trainingDate.startDate, 'Europe/Berlin').format(),
@@ -230,7 +230,7 @@ export class TrainingService {
             applicationCount: (trainingDate as any).getDataValue('applicationCount'), // Получаем количество заявок
         }));
     }
-    
+
 
 
     // Получения записи конкретной тренировки 
@@ -428,11 +428,12 @@ export class TrainingService {
 
     async update(dto: UpdateTrainingDto): Promise<{ message: string }> {
         const { trainingDatesId, startTime, endTime, trainerId } = dto;
-        console.log('trainerIdtrainerIdtrainerIdtrainerId')
-        console.log(trainingDatesId, startTime, endTime, trainerId)
         /* console.log(trainerId) */
         const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId, {
-            include: [Application], // Загружаем заявки, связанные с датой тренировки
+            include: [{
+                model: Application,
+                include:[User]
+            }], // Загружаем заявки, связанные с датой тренировки
         });
 
         // Проверка существования даты тренировки
@@ -443,7 +444,7 @@ export class TrainingService {
         // Получаем основную тренировку и форматируем новую дату
         const training = await this.getTraining(dto.trainingDatesId); // Получаем детали тренировки
         const newDate = this.formatTrainingDate(startTime, endTime);
-        console.log(training)
+
         // Сообщение о переносе тренировки
         const rescheduleMessage = [
             `Die Trainingseinheit wurde auf einen neuen Zeitpunkt verlegt.\n`,
@@ -459,7 +460,7 @@ export class TrainingService {
             {
                 startDate: startTime,
                 endDate: endTime,
-                trainerId: trainerId == 0? null : trainerId
+                trainerId: trainerId == 0 ? null : trainerId
             },
             {
                 where: { id: trainingDatesId },
@@ -468,7 +469,7 @@ export class TrainingService {
 
         // Отправляем уведомление всем участникам, зарегистрированным на обновленную дату
         for (const application of trainingDate.applications) {
-
+            console.log(application)
             const formattedPhone = this.formatPhoneNumber(application.user.phone);
             setTimeout(async () => {
                 try {
@@ -482,12 +483,10 @@ export class TrainingService {
         return { message: `Training and all related TrainingDates with ID ${trainingDatesId} have been updated` };
     }
 
-
+    //TODO Сделать проверку на то, что не явлеятся ли поля старыми. Особенно с тренером 
     async updateAll(dto: UpdateTrainingDto): Promise<{ message: string }> {
 
         const { trainingDatesId, startTime, endTime, trainerId } = dto;
-        console.log('trainingDatesId, startTime, endTime, trainerId')
-        console.log(trainingDatesId, startTime, endTime, trainerId)
         const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId);
         if (!trainingDate) {
             throw new NotFoundException(`TrainingDate with ID ${trainingDatesId} not found`);
@@ -540,7 +539,7 @@ export class TrainingService {
             }).toDate();
 
             await this.trainingDatesRepository.update(
-                { startDate: updatedStartDate, endDate: updatedEndDate, trainerId: trainerId == 0? null : trainerId },
+                { startDate: updatedStartDate, endDate: updatedEndDate, trainerId: trainerId == 0 ? null : trainerId },
                 { where: { id: date.id } }
             );
 
@@ -553,7 +552,7 @@ export class TrainingService {
             `*Neue Zeitpunkte:* Die ersten Trainingseinheiten beginnen um ${newStartTime} und enden um ${newEndTime}.\n`,
             `*Ort:* ${training.location.locationName}\n`,
             `*Gruppe:* ${training.group.groupName}\n`,
-            training.trainigDates[0].trainer ? `*Trainer:* ${training.trainigDates[0].trainer.username}\n` : '',
+            /* training.trainigDates[0].trainer ? `*Trainer:* ${training.trainigDates[0].trainer.username}\n` : '', */
             `Bitte beachten Sie die neue Uhrzeit für Ihre Trainings.`,
             'Mit freundlichen Grüßen,\n Tennisschule Gorovits Team'
         ].join(' ').trim();
@@ -561,8 +560,7 @@ export class TrainingService {
 
         for (const date of training.trainigDates) {
             for (const application of date.applications) {
-
-
+                //@ts-ignore
                 const formattedPhone = this.formatPhoneNumber(application.user.phone);
 
                 setTimeout(async () => {
