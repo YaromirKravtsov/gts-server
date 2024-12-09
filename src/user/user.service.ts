@@ -10,13 +10,15 @@ import { SaveTokenDto } from 'src/token/dto/save-token.dto';
 import { EditUserDto } from './dto/edit-user.dto';
 import { Op } from 'sequelize';
 import * as bcrypt from 'bcrypt';
+import { ApplicationService } from 'src/application/application.service';
 
 @Injectable()
 export class UserService {
     constructor(@InjectModel(User) private userRepository: typeof User,
         @Inject(forwardRef(() => TokenService))
-        private readonly tokenService: TokenService
-
+        private readonly tokenService: TokenService,
+        @Inject(forwardRef(() => ApplicationService))
+        private readonly applicationService: ApplicationService
     ) { }
 
     async createNewUser(dto: RegisterUserDto) {
@@ -147,6 +149,8 @@ export class UserService {
             if (!player) {
                 throw new HttpException('Benutzername oder Passwort ist ungültig', HttpStatus.NOT_FOUND);
             }
+
+            await this.applicationService.deleteAllUserApplications(id);
 
             await this.tokenService.removeAllTokensForUser(id)
             await player.destroy()
