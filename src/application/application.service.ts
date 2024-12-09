@@ -67,6 +67,7 @@ export class ApplicationService {
             `- *Zeit:* ${date}\n`,
             `- *Ort:* ${training.location.locationName}\n`,
             `- *Gruppe:* ${training.group.groupName}\n`,
+            training.trainigDates[0].trainer ? `*Trainer:* ${training.trainigDates[0].trainer.username}\n`: '',
             `Falls Sie Ihre Anmeldung stornieren möchten, können Sie dies über folgenden Link tun: ${deleteLink}\n\n`,
             'Wir freuen uns darauf, Sie beim Training zu sehen!\n',
             'Mit freundlichen Grüßen,\n Tennisschule Gorovits Team'
@@ -101,28 +102,36 @@ export class ApplicationService {
     }
 
     async addRegularPlayerToTraining(dto: AddRegularPlayerToTraing) {
-
         const { userId, trainingDatesId } = dto;
-        const player = await this.userService.getUser(userId);
-
-        if (!player) {
-            throw new HttpException('Player wurde nicht gefunden', HttpStatus.NOT_FOUND);
-        }
-
-        const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId)
-
+    
+        // Проверяем, существует ли указанная дата тренировки
+        const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId);
         if (!trainingDate) {
             throw new HttpException('Training wurde nicht gefunden', HttpStatus.NOT_FOUND);
         }
-
+    
+        // Проверяем, есть ли уже запись на эту тренировку для данного пользователя
+        const existingApplication = await this.applicationRepository.findOne({
+            where: {
+                trainingDatesId,
+                userId,
+            },
+        });
+    
+        if (existingApplication) {
+            throw new HttpException('Benutzer ist bereits für dieses Training registriert', HttpStatus.CONFLICT);
+        }
+    
+        // Если записи нет, создаём новое приложение
         const application = await this.applicationRepository.create({
             isPresent: false,
             trainingDatesId,
-            userId
-
-        })
+            userId,
+        });
+    
         return application;
     }
+    
 
     async addRegularPlayerToAllTraining(dto) {
         const { userId, trainingId } = dto;
@@ -134,23 +143,35 @@ export class ApplicationService {
     
         const dateTraingsIds = await this.trainingService.getDateTraingsIdsByDateTraingId(trainingId);
     
-        if (!dateTraingsIds) {
+        if (!dateTraingsIds || dateTraingsIds.length === 0) {
             throw new HttpException('Training wurde nicht gefunden', HttpStatus.NOT_FOUND);
         }
     
         const applications = [];
     
         for (const trainingDatesId of dateTraingsIds) {
-            const application = await this.applicationRepository.create({
-                isPresent: false,
-                trainingDatesId,
-                userId,
+            // Проверка на существующую регистрацию
+            const existingApplication = await this.applicationRepository.findOne({
+                where: {
+                    trainingDatesId,
+                    userId,
+                },
             });
-            applications.push(application);
+    
+            if (!existingApplication) {
+                // Если не зарегистрирован, создаём новую запись
+                const application = await this.applicationRepository.create({
+                    isPresent: false,
+                    trainingDatesId,
+                    userId,
+                });
+                applications.push(application);
+            }
         }
     
         return applications;
     }
+    
     
 
     async deletePlayerApplication(applicationId: number) {
@@ -175,15 +196,19 @@ export class ApplicationService {
         }
         console.log('Date Training IDs:', dateTraingsIds);
     
-        await this.applicationRepository.destroy({
+        const deletedCount = await this.applicationRepository.destroy({
             where: {
-                trainingDatesId: dateTraingsIds,
+                trainingDatesId: {
+                    [Op.in]: dateTraingsIds, // Проверяем, что trainingDatesId входит в массив
+                },
                 userId: userId,
             },
         });
     
+        console.log(`${deletedCount} applications deleted`);
         return;
     }
+    
     
 
     async getApplicationsByTrainingDateId(trainingDatesId: number) {
@@ -264,7 +289,16 @@ export class ApplicationService {
             /*  order: [['trainingDates', 'startDate', 'ASC']], */
         });
 
-
+     /*    console.log({
+            trainingDatesId: application.trainingDatesId,
+            playerName: application.user.username,
+            playerComment: application.playerComment,
+            playerPhone: application.user.phone,
+            startDate: moment.tz(application.trainingDates.startDate, 'Europe/Berlin').format(),
+            endDate: moment.tz(application.trainingDates.endDate, 'Europe/Berlin').format(),
+            location: application.trainingDates.training.location,
+            group: application.trainingDates.training.group,
+        }) */
         return {
             trainingDatesId: application.trainingDatesId,
             playerName: application.user.username,
@@ -321,7 +355,6 @@ export class ApplicationService {
             id: application.id,
             isPresent: application.isPresent
         }
-
     }
 
     // 

@@ -10,7 +10,7 @@ export class RegisterUserDto {
     @ApiProperty({ required: false }) 
     @IsString({ message: 'Telefon muss eine Zeichenfolge sein' })
     @IsOptional()
-    @MinLength(7, { message: 'Das Passwort darf nicht kleiner als 7 sein' })
+    @MinLength(7, { message: 'Das Telefonnummer darf nicht kleiner als 7 sein' })
     readonly phone?:string;
 
     @ApiProperty({ required: false }) 
@@ -18,9 +18,9 @@ export class RegisterUserDto {
     @IsString({ message: 'Email muss eine Zeichenfolge sein' })
     readonly email?:string;
 
-/*     @ApiProperty({ required: false }) 
+    @ApiProperty({ required: false }) 
     @IsOptional()
-    @IsString({ message: 'Email muss eine Zeichenfolge sein' }) */
+    @IsString({ message: 'Email muss eine Zeichenfolge sein' })
     readonly role?: string;
 }
 

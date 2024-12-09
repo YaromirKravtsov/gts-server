@@ -4,7 +4,7 @@ import { Training } from './training.model';
 import { CreateTrainingDto } from './dto/create-training-dto';
 import { Roles } from 'src/role/roles-auth-decorator';
 import { RoleGuard } from 'src/role/role.gurard';
-import { Model, Op } from 'sequelize';
+import { Model, Op, Sequelize } from 'sequelize';
 import { Group } from '../../src/group/group.model';
 import { Location } from 'src/location/location.model';
 import { TrainingDates } from './trainig-dates.model';
@@ -47,8 +47,8 @@ export class TrainingService {
         while (currentStartDate.isSameOrBefore(finalDate)) {
             trainingDates.push({
                 trainingId: training.id,
-                startDate: currentStartDate.clone().utc().toDate(), 
-                endDate: currentEndDate.clone().utc().toDate(),     
+                startDate: currentStartDate.clone().utc().toDate(),
+                endDate: currentEndDate.clone().utc().toDate(),
             });
 
             if (repeat_type === 4) {
@@ -74,7 +74,7 @@ export class TrainingService {
             training,
             trainingDates: savedTrainingDates,
         };
-    
+
     }
 
 
@@ -128,7 +128,8 @@ export class TrainingService {
                         { model: Group },
                         { model: Location },
                     ],
-                },
+                }
+
             ],
         });
 
@@ -154,6 +155,7 @@ export class TrainingService {
 
             const trainingWithRightDates = {
                 ...trainingJson,
+                /*  playerPhone: trainingDate.user.username, */
                 id: trainingDate.id,
                 startTime: moment.tz(trainingDate.startDate, 'Europe/Berlin').format(),
                 endTime: moment.tz(trainingDate.endDate, 'Europe/Berlin').format(),
@@ -171,26 +173,36 @@ export class TrainingService {
         };
     }
 
-    async getTrainingsForMonth(date: string) {
-
+    async getTrainingsForMonth(date: string, trainerId?: number) {
         const startDate = new Date(date);
         const year = startDate.getFullYear();
         const month = startDate.getMonth();
-
-        // Определяем начало и конец месяца
+    
         const monthStart = new Date(year, month, 1);
         const monthEnd = new Date(year, month + 1, 1);
-        console.log(monthStart, monthEnd);
-
-        // Выполняем запрос на получение тренировок за указанный месяц
-        const trainingDates = await this.trainingDatesRepository.findAll({
-            where: {
-                startDate: {
-                    [Op.gte]: monthStart,
-                    [Op.lt]: monthEnd,
-                },
+    
+        const whereConditions: any = {
+            startDate: {
+                [Op.gte]: monthStart,
+                [Op.lt]: monthEnd,
             },
-            attributes: ['id', 'startDate', 'endDate'],
+        };
+    
+        if (Number(trainerId)) {
+            whereConditions.trainerId = trainerId;
+        }
+    
+        const trainingDates = await this.trainingDatesRepository.findAll({
+            where: whereConditions,
+            attributes: [
+                'id',
+                'startDate',
+                'endDate',
+                [
+                    Sequelize.fn('COUNT', Sequelize.col('applications.id')), 
+                    'applicationCount', // Добавляем поле для подсчёта
+                ],
+            ],
             include: [
                 {
                     model: Training,
@@ -200,21 +212,26 @@ export class TrainingService {
                         { model: Location, attributes: { exclude: ['createdAt', 'updatedAt'] } },
                     ],
                 },
+                {
+                    model: Application,
+                    attributes: [], // Не возвращаем сами записи из Application
+                },
             ],
+            group: ['TrainingDates.id'], // Группируем по TrainingDates
             order: [['startDate', 'ASC']],
         });
-        console.log('dooooo')
-        // Преобразуем даты к Europe/Berlin перед возвратом клиенту
-        return trainingDates.map(trainingDate => {
-            return {
-                trainingDatesId: trainingDate.id,
-                startTime: moment.tz(trainingDate.startDate, 'Europe/Berlin').format(),  // Преобразование в Europe/Berlin
-                endTime: moment.tz(trainingDate.endDate, 'Europe/Berlin').format(),      // Преобразование в Europe/Berlin
-                group: trainingDate.training.group,
-                location: trainingDate.training.location,
-            }
-        })
+    
+        return trainingDates.map(trainingDate => ({
+            trainingDatesId: trainingDate.id,
+            startTime: moment.tz(trainingDate.startDate, 'Europe/Berlin').format(),
+            endTime: moment.tz(trainingDate.endDate, 'Europe/Berlin').format(),
+            group: trainingDate.training.group,
+            location: trainingDate.training.location,
+            applicationCount: (trainingDate as any).getDataValue('applicationCount'), // Получаем количество заявок
+        }));
     }
+    
+
 
     // Получения записи конкретной тренировки 
     async getTraining(trainingDatesId: number): Promise<any> {
@@ -230,27 +247,38 @@ export class TrainingService {
                 },
                 {
                     model: Application,
-                    include: [User]
-                }
+                    include: [User],
+                },
             ],
         });
 
         if (!trainingDate) {
             throw new NotFoundException(`TrainingDates with ID ${trainingDatesId} not found`);
         }
-        /*   const date = trainingDate.startD; */
+
         const training = trainingDate.training.toJSON(); // Преобразуем в простой объект
+
+        // Преобразуем структуру заявок
+        const applications = (trainingDate.applications || []).map((application) => ({
+            playerName: application.user?.username || '', // Получаем имя игрока
+            playerEmail: application.user?.email || '',  // Добавляем email игрока (если нужно)
+            playerPhone: application.user?.phone || '',  // Добавляем телефон игрока (если нужно)
+            playerId: application.user?.id || '',
+            isPresent: application.isPresent,
+            playerRole: application.user?.role || '',
+            id: application.id,
+        }));
 
         // Корректируем startTime и endTime
         const trainingWithRightDates = {
             ...training,
             startTime: moment.tz(trainingDate.startDate, 'Europe/Berlin').format(),
             endTime: moment.tz(trainingDate.endDate, 'Europe/Berlin').format(),
-            applications: trainingDate.applications || [], // Добавляем массив заявок
+            applications, // Добавляем преобразованные заявки
+            trainerId: trainingDate.trainerId
         };
 
         return trainingWithRightDates;
-
     }
 
     //  Удаление одной записи по trainingDatesId из TrainingDates
@@ -399,7 +427,10 @@ export class TrainingService {
 
 
     async update(dto: UpdateTrainingDto): Promise<{ message: string }> {
-        const { trainingDatesId, startTime, endTime } = dto;
+        const { trainingDatesId, startTime, endTime, trainerId } = dto;
+        console.log('trainerIdtrainerIdtrainerIdtrainerId')
+        console.log(trainingDatesId, startTime, endTime, trainerId)
+        /* console.log(trainerId) */
         const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId, {
             include: [Application], // Загружаем заявки, связанные с датой тренировки
         });
@@ -412,22 +443,23 @@ export class TrainingService {
         // Получаем основную тренировку и форматируем новую дату
         const training = await this.getTraining(dto.trainingDatesId); // Получаем детали тренировки
         const newDate = this.formatTrainingDate(startTime, endTime);
-
+        console.log(training)
         // Сообщение о переносе тренировки
         const rescheduleMessage = [
             `Die Trainingseinheit wurde auf einen neuen Zeitpunkt verlegt.\n`,
             `*Neuer Zeitpunkt:* ${newDate}\n`,
             `*Ort:* ${training.location.locationName}\n`,
             `*Gruppe:* ${training.group.groupName}\n`,
+            /*   training.trainigDates[0].trainer ? `*Trainer:* ${training.trainigDates[0].trainer.username}\n`: '', */
             `Wir freuen uns darauf, Sie zum neuen Zeitpunkt zu sehen!`,
             'Mit freundlichen Grüßen,\n Tennisschule Gorovits Team'
         ].join(' ').trim();
 
-        // Обновление даты тренировки
         await this.trainingDatesRepository.update(
             {
                 startDate: startTime,
                 endDate: endTime,
+                trainerId: trainerId == 0? null : trainerId
             },
             {
                 where: { id: trainingDatesId },
@@ -452,8 +484,10 @@ export class TrainingService {
 
 
     async updateAll(dto: UpdateTrainingDto): Promise<{ message: string }> {
-        const { trainingDatesId, startTime, endTime } = dto;
 
+        const { trainingDatesId, startTime, endTime, trainerId } = dto;
+        console.log('trainingDatesId, startTime, endTime, trainerId')
+        console.log(trainingDatesId, startTime, endTime, trainerId)
         const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId);
         if (!trainingDate) {
             throw new NotFoundException(`TrainingDate with ID ${trainingDatesId} not found`);
@@ -506,18 +540,20 @@ export class TrainingService {
             }).toDate();
 
             await this.trainingDatesRepository.update(
-                { startDate: updatedStartDate, endDate: updatedEndDate },
+                { startDate: updatedStartDate, endDate: updatedEndDate, trainerId: trainerId == 0? null : trainerId },
                 { where: { id: date.id } }
             );
 
             updatedTrainingDates.push({ startDate: updatedStartDate, endDate: updatedEndDate });
         }
 
+
         const newDateMessage = [
             `Die Trainingseinheit wurde auf eine neue Zeit verlegt.\n`,
             `*Neue Zeitpunkte:* Die ersten Trainingseinheiten beginnen um ${newStartTime} und enden um ${newEndTime}.\n`,
             `*Ort:* ${training.location.locationName}\n`,
             `*Gruppe:* ${training.group.groupName}\n`,
+            training.trainigDates[0].trainer ? `*Trainer:* ${training.trainigDates[0].trainer.username}\n` : '',
             `Bitte beachten Sie die neue Uhrzeit für Ihre Trainings.`,
             'Mit freundlichen Grüßen,\n Tennisschule Gorovits Team'
         ].join(' ').trim();
@@ -555,18 +591,18 @@ export class TrainingService {
                 },
             ],
         });
-    
+
         // Если тренировка не найдена, выбрасываем исключение
         if (!training) {
             throw new HttpException('Training not found', HttpStatus.NOT_FOUND);
         }
-    
+
         // Извлекаем массив id из связанных дат тренировок
         const dateTrainingIds = training.trainigDates.map((date: TrainingDates) => date.id);
-    
+
         return dateTrainingIds;
     }
-    
+
 
     private formatTrainingDate(startDate: Date, endDate: Date): string {
         const format = 'DD.MM.YYYY HH:mm';

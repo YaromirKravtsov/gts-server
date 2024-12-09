@@ -41,7 +41,7 @@ export class RoleGuard implements CanActivate {
       req.user = user;
    
       if(!requiredRole.includes(user.role)){
-        throw new UnauthorizedException({message:`You don't have the authority to do that!` })
+        throw new UnauthorizedException({message:`Sie haben nicht die Befugnis dazu!` })
       }
 
       return true;

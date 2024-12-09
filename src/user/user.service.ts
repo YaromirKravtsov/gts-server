@@ -9,7 +9,7 @@ import { TokenService } from 'src/token/token.service';
 import { SaveTokenDto } from 'src/token/dto/save-token.dto';
 import { EditUserDto } from './dto/edit-user.dto';
 import { Op } from 'sequelize';
-
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
@@ -45,6 +45,42 @@ export class UserService {
         }
     }
 
+    generatePassword = (length) => {
+        const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-';
+        let password = '';
+        for (let i = 0; i < length; i++) {
+            const randomIndex = Math.floor(Math.random() * charset.length);
+            password += charset[randomIndex];
+        }
+        return password;
+    };
+    async createTrainer(dto: RegisterUserDto) {
+        try {
+
+            
+            const candidate = await this.userRepository.findOne({ where: { username: dto.username } });
+            const password = this.generatePassword(8);
+            const hashPassword = await bcrypt.hash(password, 3);
+            if (candidate) {
+                throw new HttpException(
+                    'Ein Benutzer mit dieser Name ist bereits registriert',
+                    HttpStatus.FORBIDDEN
+                );
+
+            }
+            const user = await this.userRepository.create({ ...dto, password: hashPassword, role: 'trainer' });
+
+            const returnData = {
+                id: user.id,
+                username: user.username,
+                password: password
+            }
+            return returnData;
+        } catch (error) {
+            console.log(error)
+            throw new HttpException(error.message, error.status || HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
     async editPlayer(dto: EditUserDto) {
         try {
@@ -59,6 +95,7 @@ export class UserService {
                 email: dto.email,
                 phone: dto.phone,
                 adminComment: dto.adminComment,
+                role: dto.role
             })
 
             return {
@@ -73,21 +110,23 @@ export class UserService {
         }
     }
 
-    async convertNewToRegular(id:number) {
+    async convertNewToRegular(id: number) {
         try {
+            console.log({ id })
+            console.log(id)
             const player = await this.userRepository.findByPk(id);
 
             if (!player) {
                 throw new HttpException('Benutzername oder Passwort ist ungültig', HttpStatus.NOT_FOUND);
             }
-            if(player.role == 'regularPlayer'){
-                throw new HttpException('Der Player muss neu sein', HttpStatus.BAD_REQUEST);
-            }
+            /*  if(player.role == 'regularPlayer'){
+                 throw new HttpException('Der Player muss neu sein', HttpStatus.BAD_REQUEST);
+             } */
 
             await player.update({
-                role: 'regularPlayer'
+                role: (player.role == 'regularPlayer') ? 'newPlayer' : 'regularPlayer'
             })
-            return  {
+            return {
                 username: player.username,
                 email: player.email,
                 adminComment: player.adminComment,
@@ -109,6 +148,7 @@ export class UserService {
                 throw new HttpException('Benutzername oder Passwort ist ungültig', HttpStatus.NOT_FOUND);
             }
 
+            await this.tokenService.removeAllTokensForUser(id)
             await player.destroy()
             return;
         } catch (error) {
@@ -117,7 +157,7 @@ export class UserService {
         }
     }
 
-    async getAllUsers(){
+    async getAllUsers() {
         try {
             const players = await this.userRepository.findAll({
                 where: {
@@ -127,7 +167,7 @@ export class UserService {
                 },
                 attributes: { exclude: ['password'] }, // Исключаем поле password из результата
             });
-            
+
 
             return players;
         } catch (error) {
@@ -136,20 +176,37 @@ export class UserService {
         }
     }
 
-    async searchPlayers(searchQuery: string) {
+    async searchPlayers(searchQuery?: string, role: string = 'admin') {
         try {
-            if (!searchQuery || searchQuery.trim() === '') {
-                throw new HttpException('Search query cannot be empty', HttpStatus.BAD_REQUEST);
+            console.log('rolerolerolerolerolerole')
+            console.log(role)
+            // Создаём условия для фильтрации
+            let whereConditions: any = {};
+            
+            if (role == 'player') {
+                whereConditions = {
+                    role: {
+                        [Op.notIn]: ['admin', 'trainer'], // Исключаем роли 'admin' и 'trainer'
+                    },
+                };
+            } else if (role == 'admin') {
+                whereConditions = {
+                    role: {
+                        [Op.notIn]: ['admin','regularPlayer', 'newPlayer'], // Исключаем роли 'admin' и 'trainer'
+                    }, 
+                };
+            } 
+
+            if (searchQuery && searchQuery.trim() !== '') {
+                whereConditions[Op.or] = [
+                    { username: { [Op.like]: `%${searchQuery}%` } }, // Поиск по имени
+                    { phone: { [Op.like]: `%${searchQuery}%` } },    // Поиск по телефону
+                    { email: { [Op.like]: `%${searchQuery}%` } },    // Поиск по email
+                ];
             }
 
             const players = await this.userRepository.findAll({
-                where: {
-                    [Op.or]: [
-                        { username: { [Op.like]: `%${searchQuery}%` } }, // Поиск по имени
-                        { phone: { [Op.like]: `%${searchQuery}%` } },    // Поиск по телефону
-                        { email: { [Op.like]: `%${searchQuery}%` } },    // Поиск по email
-                    ],
-                },
+                where: whereConditions,
                 attributes: { exclude: ['password'] }, // Исключаем поле password
             });
 
@@ -162,6 +219,8 @@ export class UserService {
             );
         }
     }
+
+
 
     async login(dto: LoginDto) {
         try {
@@ -197,10 +256,12 @@ export class UserService {
 
     async getUser(id: number) {
         try {
+            console.log('idididid')
+            console.log(id)
             const player = await this.userRepository.findByPk(id);
 
             if (!player) {
-                throw new HttpException('Benutzername oder Passwort ist ungültig', HttpStatus.NOT_FOUND);
+                throw new HttpException('Benutzername wurde nicht gefunden', HttpStatus.NOT_FOUND);
             }
 
             return player;

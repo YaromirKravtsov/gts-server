@@ -63,7 +63,7 @@ describe('User e2e', () => {
 
     it('should create new user', async () => {
         const response = await request(app.getHttpServer())
-            .post('/user/regularPlayer') // URL эндпоинта
+            .post('/user') // URL эндпоинта
             .set('Authorization', `Bearer ${accessToken}`) // Передаём токен авторизации
             .send({
                 username: 'newUser',
@@ -80,7 +80,7 @@ describe('User e2e', () => {
 
     it('should return creatin fail', async () => {
         const response = await request(app.getHttpServer())
-            .post('/user/regularPlayer')
+            .post('/user')
             .set('Authorization', `Bearer ${accessToken}`) // Передаём токен авторизации
             .send({
                 username: 'newUser',
