@@ -1,4 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
+import { join } from 'path';
+import { MessageMedia } from 'whatsapp-web.js';
 const { Client, LocalAuth } = require("whatsapp-web.js")
 const qrcode = require("qrcode-terminal")
 
@@ -49,7 +51,7 @@ export class WhatsAppService implements OnModuleInit {
     });
   }
   
-
+/* 
   async sendMessage(phone: string, message: string): Promise<void> {
     await this.ensureClientIsReady();
 
@@ -60,6 +62,23 @@ export class WhatsAppService implements OnModuleInit {
       console.log(`Message sent to ${contactId}`);
     } catch (error) {
       console.error('Error sending message:', error);
+      throw error;
+    }
+  } */
+
+
+  async sendMessage(phone: string, text: string, isSendFile?: boolean): Promise<void> {
+    try {
+      const contactId = phone.replace('+', '').trim() + "@c.us";
+      if (isSendFile) {
+        const filePath = join(__dirname, '..', '..', 'static', 'Tennisschule Gorovits Testmonat Wintersaison.pdf');
+        const media = MessageMedia.fromFilePath(filePath);
+
+        await this.client.sendMessage(contactId, media, { caption: text });
+      } else {
+        await this.client.sendMessage(contactId, text);
+      }
+    } catch (error) {
       throw error;
     }
   }

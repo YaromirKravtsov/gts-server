@@ -15,7 +15,8 @@ import { UserModule } from 'src/user/user.module';
     SequelizeModule.forFeature([Application, TrainingDates]),
     forwardRef(() => WhatsappModule),
     forwardRef(() => TrainingModule),
-    UserModule
+    forwardRef(() => UserModule),
+    
     
   ],
   exports: [ApplicationService],

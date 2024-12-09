@@ -65,6 +65,17 @@ export class GroupController {
         return this.groupService.updateVisible(id);
     }
 
+
+
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
+    @ApiOperation({ summary: 'Update group isToAdult' })
+    @ApiParam({ name: 'id', type: Number, description: 'ID группы' })
+    @Put(':id/isToAdult')
+    async updateIsToAdult(@Param('id') id: number) {
+        return this.groupService.updateIsToAdult(id);
+    }
+    
     // Обновление поля `order`
     @Roles(['admin'])
     @UseGuards(RoleGuard)
