@@ -4,6 +4,7 @@ import { Application } from "src/application/application.model";
 import { Group } from "../../src/group/group.model";
 import { Location } from "src/location/location.model";
 import { TrainingDates } from "./trainig-dates.model";
+import { User } from "src/user/user.model";
 
 
 interface TrainingCreationAttrs {
@@ -13,6 +14,7 @@ interface TrainingCreationAttrs {
     repeatType: number;
     groupId: number;
     locationId: number;
+ 
 }
 
 @Table({ tableName: 'training', createdAt: false, updatedAt: false })
@@ -49,6 +51,8 @@ export class Training extends Model<Training, TrainingCreationAttrs> {
 
     @HasMany(() => TrainingDates)
     trainigDates: TrainingDates[] 
+
+
 
 }
 

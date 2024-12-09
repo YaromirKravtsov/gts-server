@@ -33,13 +33,26 @@ export class WhatsAppService implements OnModuleInit {
 
   onModuleInit() {
     this.client.initialize();
+  
+    this.client.on('ready', () => {
+      console.log('WhatsApp client is ready!');
+    });
+  
+    this.client.on('auth_failure', (msg) => {
+      console.error('Authentication failure:', msg);
+    });
+  
+    this.client.on('disconnected', (reason) => {
+      console.error('WhatsApp client disconnected:', reason);
+      this.client.destroy(); // Закрываем клиент
+      this.client.initialize(); // Инициализируем заново
+    });
   }
+  
 
   async sendMessage(phone: string, message: string): Promise<void> {
-    const state = await this.client.getState();
-    if (!this.client || state !== 'CONNECTED') {
-      return;
-    }
+    await this.ensureClientIsReady();
+
     try {
       const contactId = phone.replace('+', '').trim() + "@c.us";
       console.log('Contact Id:' + contactId);
@@ -63,10 +76,8 @@ export class WhatsAppService implements OnModuleInit {
   }
 
   async sendMessageToGroup(message: string) {
-    const state = await this.client.getState();
-    if (!this.client || state !== 'CONNECTED') {
-      return true;
-    }
+    await this.ensureClientIsReady();
+
     const groupId = '120363347100599639@g.us';
     try {
       console.log('В группу')
@@ -81,10 +92,8 @@ export class WhatsAppService implements OnModuleInit {
   async isWhatsAppRegistered(phone: string): Promise<boolean> {
     try {
 
-      const state = await this.client.getState();
-      if (!this.client || state !== 'CONNECTED') {
-        return true;
-      }
+      await this.ensureClientIsReady();
+
       const contactId = phone.replace('+', '').trim() + "@c.us";
 
       console.log(contactId)
@@ -97,5 +106,11 @@ export class WhatsAppService implements OnModuleInit {
     }
   }
 
-
+  async ensureClientIsReady() {
+    const state = await this.client.getState().catch(() => null);
+    if (!state || state !== 'CONNECTED') {
+      throw new Error('WhatsApp client is not ready');
+    }
+  }
+  
 }

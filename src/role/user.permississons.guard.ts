@@ -23,7 +23,7 @@ export class UserPermissionsGuard implements CanActivate{
             const user = verify(token,process.env.JWT_ACCESS_SECRET) as JwtPayload;
     
             if(Number(user.userId) != Number(userId) && user.role !== 'admin' ){
-                throw new UnauthorizedException({message:`You don't have the authority to do that!` })
+                throw new UnauthorizedException({message:`Sie haben nicht die Befugnis dazu!` })
             }
 
             return true;
