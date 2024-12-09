@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsInt, IsOptional, IsString } from "class-validator";
+import { IsBoolean, IsInt, IsOptional, IsString } from "class-validator";
 
 
 export class UpdateGroupDto{
@@ -21,6 +21,13 @@ export class UpdateGroupDto{
     @IsOptional()
     @IsString()
     color?: string;
+
+
+    
+    @ApiProperty({})
+    @IsOptional()
+    @IsBoolean()
+    isToAdult?: boolean;
 
     
 }

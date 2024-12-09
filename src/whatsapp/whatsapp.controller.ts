@@ -1,7 +1,8 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Post } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { WhatsAppService } from './whatsapp/whatsapp.service';
 import { GroupService } from './group/group.service';
+import { SendMessageDto } from './dto/send-message.dto';
 
 @ApiTags('WhatsApp') // Название группы для Swagger
 @Controller('whatsapp')
@@ -11,6 +12,35 @@ export class WhatsappController {
         private readonly whatsappService: WhatsAppService,
         private readonly groupService: GroupService,
     ) {}
+
+    @Post('send')
+    @ApiOperation({ summary: 'Send a WhatsApp message with or without a file' })
+    @ApiBody({
+        description: 'Send WhatsApp message data',
+        schema: {
+            type: 'object',
+            properties: {
+                to: { type: 'string', example: '+1234567890' },
+                text: { type: 'string', example: 'Hello, this is a test message.' },
+                isSendFile: { type: 'boolean', example: true },
+            },
+        },
+    })
+    async sendMessage(@Body() body: SendMessageDto): Promise<string> {
+        const { to, text, isSendFile } = body;
+
+        if (!to || !text) {
+            throw new BadRequestException('Recipient ("to") and message text ("text") are required.');
+        }
+
+        try {
+            await this.whatsappService.sendMessage(to, text, isSendFile);
+            return 'Message sent successfully!';
+        } catch (error) {
+            throw new BadRequestException(`Failed to send message: ${error.message}`);
+        }
+    }
+
 /* 
     @Post('send-message')
     @ApiOperation({ summary: 'Send a message to a phone number' })
