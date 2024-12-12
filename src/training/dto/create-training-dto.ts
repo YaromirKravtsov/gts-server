@@ -20,6 +20,12 @@ export class CreateTrainingDto {
     repeat_type: number;
 
     @ApiProperty({ 
+        example: 'Comment', 
+        description: 'Admin Comment' 
+    })
+    adminComment: string;
+
+    @ApiProperty({ 
         example: 1, 
         description: 'The ID of the group associated with the training' 
     })

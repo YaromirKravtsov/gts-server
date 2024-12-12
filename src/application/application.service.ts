@@ -219,7 +219,7 @@ export class ApplicationService {
     
 
     async getApplicationsByTrainingDateId(trainingDatesId: number) {
-        return this.applicationRepository.findAll({ where: { trainingDatesId } });
+        return this.applicationRepository.findAll({ where: { trainingDatesId }, include: [User] });
     }
 
     // Получение заявок за месяц
