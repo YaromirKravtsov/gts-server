@@ -26,7 +26,7 @@ export class TrainingService {
     ) { }
 
     async createTraining(dto: CreateTrainingDto) {
-        const { startTime, endTime, repeat_type, groupId, locationId ,adminComment} = dto;
+        const { startTime, endTime, repeat_type, groupId, locationId ,adminComment, trainerId} = dto;
 
         const training = await this.trainingRepository.create({
             isTrail: true,
@@ -49,7 +49,8 @@ export class TrainingService {
                 trainingId: training.id,
                 startDate: currentStartDate.clone().utc().toDate(),
                 endDate: currentEndDate.clone().utc().toDate(),
-                adminComment
+                adminComment,
+                trainerId
             });
 
             if (repeat_type === 4) {
@@ -236,6 +237,7 @@ export class TrainingService {
 
     // Получения записи конкретной тренировки 
     async getTraining(trainingDatesId: number): Promise<any> {
+        console.log('trainingWithRightDates')
         const trainingDate = await this.trainingDatesRepository.findOne({
             where: { id: trainingDatesId },
             include: [
@@ -276,9 +278,11 @@ export class TrainingService {
             startTime: moment.tz(trainingDate.startDate, 'Europe/Berlin').format(),
             endTime: moment.tz(trainingDate.endDate, 'Europe/Berlin').format(),
             applications, // Добавляем преобразованные заявки
-            trainerId: trainingDate.trainerId
+            trainerId: trainingDate.trainerId,
+            adminComment: trainingDate.adminComment
         };
 
+        console.log(trainingWithRightDates);
         return trainingWithRightDates;
     }
 
