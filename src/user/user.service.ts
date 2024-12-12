@@ -26,13 +26,13 @@ export class UserService {
 
             const candidate = await this.userRepository.findOne({ where: { username: dto.username } });
 
-            if (candidate) {
+           /*  if (candidate) {
                 throw new HttpException(
                     'Ein Benutzer mit dieser Name ist bereits registriert',
                     HttpStatus.FORBIDDEN
                 );
 
-            }
+            } */
 
             const user = await this.userRepository.create({ ...dto });
 
@@ -184,7 +184,6 @@ export class UserService {
         try {
             console.log('rolerolerolerolerolerole')
             console.log(role)
-            // Создаём условия для фильтрации
             let whereConditions: any = {};
             
             if (role == 'player') {
@@ -196,7 +195,14 @@ export class UserService {
             } else if (role == 'admin') {
                 whereConditions = {
                     role: {
-                        [Op.notIn]: ['admin','regularPlayer', 'newPlayer'], // Исключаем роли 'admin' и 'trainer'
+                        [Op.in]: ['admin', 'trainer'], // Исключаем роли 'admin' и 'trainer'
+                    }, 
+                };
+            } 
+            if (role == 'trainer') {
+                whereConditions = {
+                    role: {
+                        [Op.in]: ['trainer'], // Исключаем роли 'admin' и 'trainer'
                     }, 
                 };
             } 
@@ -208,7 +214,7 @@ export class UserService {
                     { email: { [Op.like]: `%${searchQuery}%` } },    // Поиск по email
                 ];
             }
-
+            console.log(whereConditions)
             const players = await this.userRepository.findAll({
                 where: whereConditions,
                 attributes: { exclude: ['password'] }, // Исключаем поле password

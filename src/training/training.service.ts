@@ -26,7 +26,7 @@ export class TrainingService {
     ) { }
 
     async createTraining(dto: CreateTrainingDto) {
-        const { startTime, endTime, repeat_type, groupId, locationId } = dto;
+        const { startTime, endTime, repeat_type, groupId, locationId ,adminComment} = dto;
 
         const training = await this.trainingRepository.create({
             isTrail: true,
@@ -34,7 +34,7 @@ export class TrainingService {
             endTime,
             repeatType: repeat_type,
             groupId,
-            locationId,
+            locationId
         });
 
         const trainingDates = [];
@@ -49,6 +49,7 @@ export class TrainingService {
                 trainingId: training.id,
                 startDate: currentStartDate.clone().utc().toDate(),
                 endDate: currentEndDate.clone().utc().toDate(),
+                adminComment
             });
 
             if (repeat_type === 4) {
@@ -318,6 +319,7 @@ export class TrainingService {
 
             for (const application of applications) {
                 try {
+                    console.log(application)
                     const formattedPhone = this.formatPhoneNumber(application.user.phone);
                     console.log(`Обработка заявки ID: ${application.id}, телефон игрока: ${formattedPhone}`);
 
@@ -352,10 +354,6 @@ export class TrainingService {
             throw error;
         }
     }
-
-
-
-
 
     // Удаление всех записей по trainingId из TrainingDates и удаление самой Training
     async deleteTrainingAndDates(dto: DeleteTrainigDto): Promise<{ message: string }> {
@@ -427,7 +425,7 @@ export class TrainingService {
 
 
     async update(dto: UpdateTrainingDto): Promise<{ message: string }> {
-        const { trainingDatesId, startTime, endTime, trainerId } = dto;
+        const { trainingDatesId, startTime, endTime, trainerId ,adminComment} = dto;
         /* console.log(trainerId) */
         const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId, {
             include: [{
@@ -460,7 +458,8 @@ export class TrainingService {
             {
                 startDate: startTime,
                 endDate: endTime,
-                trainerId: trainerId == 0 ? null : trainerId
+                trainerId: trainerId == 0 ? null : trainerId,
+                adminComment
             },
             {
                 where: { id: trainingDatesId },
@@ -486,7 +485,7 @@ export class TrainingService {
     //TODO Сделать проверку на то, что не явлеятся ли поля старыми. Особенно с тренером 
     async updateAll(dto: UpdateTrainingDto): Promise<{ message: string }> {
 
-        const { trainingDatesId, startTime, endTime, trainerId } = dto;
+        const { trainingDatesId, startTime, endTime, trainerId, adminComment} = dto;
         const trainingDate = await this.trainingDatesRepository.findByPk(trainingDatesId);
         if (!trainingDate) {
             throw new NotFoundException(`TrainingDate with ID ${trainingDatesId} not found`);
@@ -539,7 +538,7 @@ export class TrainingService {
             }).toDate();
 
             await this.trainingDatesRepository.update(
-                { startDate: updatedStartDate, endDate: updatedEndDate, trainerId: trainerId == 0 ? null : trainerId },
+                { startDate: updatedStartDate, endDate: updatedEndDate, trainerId: trainerId == 0 ? null : trainerId , adminComment},
                 { where: { id: date.id } }
             );
 

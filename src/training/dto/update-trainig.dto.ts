@@ -19,6 +19,12 @@ export class UpdateTrainingDto {
     })
     trainingDatesId?: number;
 
+    @ApiProperty({ 
+        example: 'Comment', 
+        description: 'Admin Comment' 
+    })
+    adminComment: string;
+
     @ApiProperty()
     trainerId?: number;
 

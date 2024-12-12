@@ -71,7 +71,7 @@ export class WhatsAppService implements OnModuleInit {
     try {
       const contactId = phone.replace('+', '').trim() + "@c.us";
       if (isSendFile) {
-        const filePath = join(__dirname, '..', '..', 'static', 'Tennisschule Gorovits Testmonat Wintersaison.pdf');
+        const filePath = join(__dirname, '..', '..', 'static', 'test_month.pdf');
         const media = MessageMedia.fromFilePath(filePath);
 
         await this.client.sendMessage(contactId, media, { caption: text });
