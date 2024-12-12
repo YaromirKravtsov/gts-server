@@ -36,4 +36,10 @@ export class CreateTrainingDto {
         description: 'The ID of the location associated with the training' 
     })
     locationId: number;
+
+    @ApiProperty({ 
+        example: 1, 
+        description: 'The ID of the location associated with the training' 
+    })
+    trainerId: number;
 }
