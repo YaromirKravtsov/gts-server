@@ -52,7 +52,7 @@ SwaggerModule.setup('api/docs', app, document, options);
 
 
   app.enableCors({
-    origin: ['http://192.168.0.119:3000', 'http://localhost:3000', 'http://87.106.232.167', 'http://gts','http://c66984zi.beget.tech', 'http://87.106.151.124'
+    origin: ['http://192.168.0.119:3000', 'http://localhost:3000', 'http://87.106.232.167', 'http://gts','http://c66984zi.beget.tech', 'http://87.106.151.124','http://localhost:8000'
     ],
     credentials: true,
   });

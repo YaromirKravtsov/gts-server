@@ -11,7 +11,7 @@ interface TrainingDatesCreationAttrs {
     trainingId: number;
     startDate: Date;
     endDate: Date;
-
+    adminComment?: string;
 }
 
 @Table({ tableName: 'training_dates', createdAt: false, updatedAt: false })
@@ -27,6 +27,9 @@ export class TrainingDates extends Model<TrainingDates, TrainingDatesCreationAtt
     @Column({ type: DataType.DATE, allowNull: false })
     endDate: Date;
     
+    @Column({ type: DataType.STRING, allowNull: true })
+    adminComment: string;
+
     @ForeignKey(() => Training)
     @Column({ type: DataType.INTEGER, allowNull: false })
     trainingId: number;

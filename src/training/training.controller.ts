@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpException, HttpStatus, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { TrainingService } from './training.service';
 import { CreateTrainingDto } from './dto/create-training-dto';
 import { Roles } from 'src/role/roles-auth-decorator';
@@ -24,7 +24,17 @@ export class TrainingController {
     @ApiResponse({ status: 201, description: 'The training has been successfully created.', type: Training })
     @ApiBody({ type: CreateTrainingDto })
     async createTraining(@Body() createTrainingDto: CreateTrainingDto)/* : Promise<Training>  */{
-        return this.trainingService.createTraining(createTrainingDto);
+        try {
+            console.log('do Controller');
+            return this.trainingService.createTraining(createTrainingDto);
+        } catch (error) {
+            console.error(error);
+            throw new HttpException(
+                error.message || 'Internal Server Error',
+                error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+        
     }
 
     /**
