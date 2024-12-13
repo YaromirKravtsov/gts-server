@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpException, HttpStatus, Param, Post, Put, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, HttpException, HttpStatus, Param, Post, Put, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
 import { LoginDto } from './dto/login.dto';
 import { Roles } from 'src/role/roles-auth-decorator';
@@ -7,6 +7,8 @@ import { RegisterUserDto } from './dto/register-user-dto';
 import { Response } from 'express';
 import { ApiBody, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { EditUserDto } from './dto/edit-user.dto';
+import { ChangePasswordDto } from './dto/chage-password.dto';
+import { JwtPayload, verify } from 'jsonwebtoken';
 
 @Controller('user')
 export class UserController {
@@ -98,6 +100,26 @@ export class UserController {
         return res.status(200).json(userData);
     }
 
+
+
+    @Put('chagePassword')
+    @ApiOperation({ summary: 'User change pass' })
+    @ApiBody({ type: ChangePasswordDto })
+    async chagePassword(@Body() dto: ChangePasswordDto,   @Req() req: Request,) {
+        //@ts-ignore
+        const refreshToken = req.cookies['refreshToken']; // Достаем куку
+        console.log('Refresh Token:', refreshToken);
+        const data = verify(refreshToken, process.env.JWT_REFRESH_SECRET) as JwtPayload
+        console.log(data)
+        if((data.userId == dto.userId) || data.role == 'admin' ){
+            const userData = await this.userService.chagePassword(dto);
+        }else{
+            throw new ForbiddenException('Permission denied')
+        }
+
+        
+        return /* res.status(200).json(userData) */;
+    }
 
     
 

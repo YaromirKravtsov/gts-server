@@ -9,7 +9,7 @@ import { ROLES_KEY } from "./roles-auth-decorator";
 // Определяем интерфейс для JWT токена
 interface JwtPayload {
   role: string; // Поле role в токене
-  id: number
+  userId: number
 }
 
 @Injectable()
