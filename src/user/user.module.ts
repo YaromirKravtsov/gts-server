@@ -5,11 +5,13 @@ import { SequelizeModule } from '@nestjs/sequelize';
 import { User } from './user.model';
 import { TokenModule } from 'src/token/token.module';
 import { ApplicationModule } from 'src/application/application.module';
+import { WhatsappModule } from 'src/whatsapp/whatsapp.module';
 
 @Module({
   controllers: [UserController],
   providers: [UserService],
   imports: [SequelizeModule.forFeature([User]),forwardRef(() =>TokenModule) ,
+  forwardRef(() => WhatsappModule),
   forwardRef(() => ApplicationModule),],
   exports: [UserService]
   
