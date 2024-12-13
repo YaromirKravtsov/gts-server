@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpException, HttpStatus, Param, Post, Put, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpException, HttpStatus, Param, ParseIntPipe, Post, Put, Query, Res, UseGuards } from '@nestjs/common';
 import { ApplicationService } from './application.service';
 import { Roles } from 'src/role/roles-auth-decorator';
 import { RoleGuard } from 'src/role/role.gurard';
@@ -159,7 +159,7 @@ export class ApplicationController {
     @Roles(['admin'])
     @UseGuards(RoleGuard)
     @ApiBearerAuth()
-    @Get('/:id')
+    @Get('one/:id')
     @ApiOperation({ summary: 'Get an application by ID' })
     @ApiParam({ name: 'id', description: 'ID of the application' })
     @ApiResponse({ status: 200, description: 'Details of the specified application.' })
@@ -167,10 +167,38 @@ export class ApplicationController {
         return this.applicationService.geApplication(id);
     }
 
+    @Roles(['admin'])
+    @UseGuards(RoleGuard)
+    @ApiBearerAuth()
+    @Get('user/:id')
+    @ApiParam({ name: 'id' })
+    @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number' })
+    @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page' })
+    async getUserApplications(
+        @Param('id') id: number,
+        @Query('page') page: string = '1',
+        @Query('limit') limit: string = '10',
+    ) {
+        try {
+            const result = await this.applicationService.getUserApplications(id, page, limit);
+            return {
+                data: result.items,
+                total: result.total,
+                page,
+                limit,
+            };
+        } catch (error) {
+            console.error(error);
+            throw new HttpException(
+                error.message || 'Internal Server Error',
+                error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+    
     /**
     * Удалить заявку ID
     */
-   //TODO 
     @Delete()
     @ApiOperation({ summary: 'Удалить заявку по ID, имени и телефону игрока' })
     @ApiQuery({ name: 'id', type: String, description: 'ID заявки', required: true })
@@ -188,4 +216,8 @@ export class ApplicationController {
         }
 
     }
+
+
+
+
 }
