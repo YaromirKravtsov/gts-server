@@ -108,8 +108,6 @@ export class UserService {
         `Hier sind Ihre Anmeldedaten:\n`,
         `Login: ${dto.username}\n`,
         `Passwort: ${password}\n`,
-        `Bitte bewahren Sie diese Daten sicher auf und ändern Sie Ihr Passwort nach der ersten Anmeldung, um Ihre Sicherheit zu gewährleisten.\n`,
-        `Falls Sie Fragen haben oder Unterstützung benötigen, zögern Sie nicht, uns zu kontaktieren.\n`,
         `Viel Erfolg und alles Gute!\n`,
         `Mit freundlichen Grüßen,\n`,
         `Tennisschule Gorovits Team`,
