@@ -25,7 +25,6 @@ export class TrainingController {
     @ApiBody({ type: CreateTrainingDto })
     async createTraining(@Body() createTrainingDto: CreateTrainingDto)/* : Promise<Training>  */{
         try {
-            console.log('do Controller');
             return this.trainingService.createTraining(createTrainingDto);
         } catch (error) {
             console.error(error);

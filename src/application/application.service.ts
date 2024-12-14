@@ -35,18 +35,19 @@ export class ApplicationService {
     @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
   ) {}
+  generateDeleteKey = () => Math.random().toString(36).substring(2, 9);
 
-  // Создание новой заявки
   async createApplication(dto: CreateApplicationDto) {
     const trainingDate = await this.trainingDatesRepository.findByPk(
       dto.trainingDatesId,
     );
+
     if (!trainingDate) {
       throw new NotFoundException(
         `TrainingDates with ID ${dto.trainingDatesId} not found`,
       );
     }
-
+    
     const formattedPhone = this.formatPhoneNumber(dto.playerPhone);
 
     const isRegistered =
@@ -64,11 +65,13 @@ export class ApplicationService {
       role: 'newPlayer',
     });
 
+    const deleteKey = this.generateDeleteKey();
     const application = await this.applicationRepository.create({
       playerComment: dto.playerComment,
       trainingDatesId: dto.trainingDatesId,
       isPresent: false,
       userId: user.id,
+      deleteKey,
     });
 
     const training = await this.trainingService.getTraining(
@@ -80,8 +83,8 @@ export class ApplicationService {
       trainingDate.endDate,
     );
 
-    const deleteLink = `${process.env.FRONT_URL}?action=delete-anmeldung&application_id=${application.id}&playerName=${encodeURIComponent(dto.playerName)}&playerPhone=${encodeURIComponent(dto.playerPhone)}`;
-    console.log(trainingDate);
+    const deleteLink = `${process.env.FRONT_URL}?action=delete-anmeldung&key=${deleteKey}&id=${application.id}`;
+
     let trainer = null;
     if (trainingDate.trainerId) {
       trainer = await this.userService.findByPk(trainingDate.trainerId);
@@ -107,7 +110,6 @@ export class ApplicationService {
       `*Gruppe:* ${training.group.groupName}\n`,
       `*Spieler:* ${dto.playerName}\n`,
       `*Telefonnummer:* ${dto.playerPhone}`,
-
       dto.playerComment ? `\n*Kommentar:* ${dto.playerComment}` : '',
     ]
       .join('')
@@ -272,7 +274,7 @@ export class ApplicationService {
     const currentPage = parseInt(page, 10) || 1; // Дефолтная страница = 1
     const itemsPerPage = parseInt(limit, 10) || 5; // Дефолтный лимит = 5
     const offset = Math.max(0, (currentPage - 1) * itemsPerPage); // Гарантия, что offset >= 0
-    
+
     const { rows: items, count: total } =
       await this.applicationRepository.findAndCountAll({
         where: { userId },
@@ -301,7 +303,9 @@ export class ApplicationService {
             model: User,
           },
         ],
-        order: [[{ model: TrainingDates, as: 'trainingDates' }, 'startDate', 'ASC']], // Указан псевдоним
+        order: [
+          [{ model: TrainingDates, as: 'trainingDates' }, 'startDate', 'ASC'],
+        ], // Указан псевдоним
 
         limit: Number(limit), // Число, не строка
         offset: offset, // Число, не строка
@@ -311,7 +315,7 @@ export class ApplicationService {
       items: items.map((application) => ({
         id: application.id,
         trainingDatesId: application.trainingDatesId,
-        isPresent:application.isPresent,
+        isPresent: application.isPresent,
         startDate: moment
           .tz(application.trainingDates.startDate, 'Europe/Berlin')
           .format(),
@@ -455,21 +459,21 @@ export class ApplicationService {
     });
   }
 
-  async deleteApplication(id: string, playerName: string, playerPhone: string) {
+  async deleteApplication(id: string, deleteKey: string) {
+    console.log(id, deleteKey);
     const application = await this.applicationRepository.findOne({
       where: {
-        id /* playerName, playerPhone */,
+        id,
+        deleteKey,
       },
     });
-    console.log(id, playerName, playerPhone);
-    console.log(application);
 
     if (!application) {
       throw new NotFoundException(`Die Registrierung wurde nicht gefunden`);
     }
-    return await this.applicationRepository.destroy({
-      where: { id },
-    });
+    await application.destroy();
+
+    return { message: 'Die Registrierung wurde erfolgreich gelöscht' };
   }
 
   async putIsPresent(applicationId: number) {
