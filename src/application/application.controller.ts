@@ -202,17 +202,19 @@ export class ApplicationController {
     @Delete()
     @ApiOperation({ summary: 'Удалить заявку по ID, имени и телефону игрока' })
     @ApiQuery({ name: 'id', type: String, description: 'ID заявки', required: true })
-    @ApiQuery({ name: 'playerName', type: String, description: 'Имя игрока', required: true })
-    @ApiQuery({ name: 'playerPhone', type: String, description: 'Телефон игрока', required: true })
+    @ApiQuery({ name: 'deleteKey', type: String })
     async delete(
-        @Query('id') id: string,
-        @Query('playerName') playerName: string,
-        @Query('playerPhone') playerPhone: string
+        @Query('applicationId') applicationId: string,
+        @Query('deleteKey') deleteKey: string
     ) {
         try {
-            return await this.applicationService.deleteApplication(id, playerName, playerPhone);
+            return await this.applicationService.deleteApplication(applicationId, deleteKey);
         } catch (error) {
-            throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+            console.error(error);
+            throw new HttpException(
+                error.message || 'Internal Server Error',
+                error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+            );
         }
 
     }

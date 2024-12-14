@@ -7,7 +7,8 @@ interface ApplicationCreationAttrs{
     playerComment?:string;
     trainingDatesId: number;
     isPresent: boolean;
-    userId: number
+    userId: number;
+    deleteKey: string
 }
 @Table({tableName:'application',createdAt:true, updatedAt:false})
 export class Application extends Model<Application,ApplicationCreationAttrs>{
@@ -23,6 +24,9 @@ export class Application extends Model<Application,ApplicationCreationAttrs>{
         
     @Column({type:DataType.TEXT, allowNull:true})
     adminComment:string;
+
+    @Column({type:DataType.STRING, allowNull:true})
+    deleteKey:string;
     
     @ForeignKey(()=> TrainingDates) 
     @Column({type: DataType.INTEGER, allowNull: false})

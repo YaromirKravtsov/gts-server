@@ -399,7 +399,7 @@ export class UserService {
           HttpStatus.NOT_FOUND,
         );
       }
-
+      
       return player;
     } catch (error) {
       console.log(error);
