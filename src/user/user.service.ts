@@ -30,14 +30,14 @@ export class UserService {
     @Inject(forwardRef(() => ApplicationService))
     private readonly applicationService: ApplicationService,
     private whatsAppService: WhatsAppService,
-  ) {}
+  ) { }
 
   async createNewUser(dto: RegisterUserDto) {
     try {
       const candidate = await this.userRepository.findOne({
         where: { username: dto.username },
       });
-
+      // TODO Логика с индификацией клиента. Есть пролема того, что один и тот же клиент может зарегестрироваться 2 раза
       /*  if (candidate) {
                 throw new HttpException(
                     'Ein Benutzer mit dieser Name ist bereits registriert',
@@ -73,11 +73,13 @@ export class UserService {
     return password;
   };
   async createTrainer(dto: RegisterUserDto) {
-    console.log('createTrainer');
+
+
     try {
       const candidate = await this.userRepository.findOne({
         where: { username: dto.username },
       });
+
       const password = this.generatePassword(8);
       const hashPassword = await bcrypt.hash(password, 3);
       if (candidate) {
@@ -91,6 +93,15 @@ export class UserService {
         password: hashPassword,
         role: 'trainer',
       });
+      
+      const returnData = {
+        id: user.id,
+        username: user.username,
+        password: password,
+      };
+
+      if(dto.phone.trim() == '') return returnData;
+
       const formattedPhone = this.formatPhoneNumber(dto.phone);
 
       const isRegistered =
@@ -126,11 +137,7 @@ export class UserService {
         }
       }, 0);
 
-      const returnData = {
-        id: user.id,
-        username: user.username,
-        password: password,
-      };
+
       return returnData;
     } catch (error) {
       console.log(error);
@@ -397,7 +404,7 @@ export class UserService {
           HttpStatus.NOT_FOUND,
         );
       }
-      
+
       return player;
     } catch (error) {
       console.log(error);

@@ -387,8 +387,11 @@ export class ApplicationService {
       group: application.trainingDates.training.group,
     }));
   }
+
   //
   async geApplication(id: number) {
+    console.log('geApplication');
+    console.log(id);
     const application = await this.applicationRepository.findOne({
       where: { id },
       include: [
@@ -414,21 +417,9 @@ export class ApplicationService {
         {
           model: User,
         },
-      ],
-
-      /*  order: [['trainingDates', 'startDate', 'ASC']], */
+      ]
     });
-
-    /*    console.log({
-            trainingDatesId: application.trainingDatesId,
-            playerName: application.user.username,
-            playerComment: application.playerComment,
-            playerPhone: application.user.phone,
-            startDate: moment.tz(application.trainingDates.startDate, 'Europe/Berlin').format(),
-            endDate: moment.tz(application.trainingDates.endDate, 'Europe/Berlin').format(),
-            location: application.trainingDates.training.location,
-            group: application.trainingDates.training.group,
-        }) */
+    console.log(application)
     return {
       trainingDatesId: application.trainingDatesId,
       playerName: application.user.username,
