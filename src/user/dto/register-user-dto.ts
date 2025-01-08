@@ -10,7 +10,7 @@ export class RegisterUserDto {
     @ApiProperty({ required: false }) 
     @IsString({ message: 'Telefon muss eine Zeichenfolge sein' })
     @IsOptional()
-    @MinLength(7, { message: 'Das Telefonnummer darf nicht kleiner als 7 sein' })
+/*     @MinLength(7, { message: 'Das Telefonnummer darf nicht kleiner als 7 sein' }) */
     readonly phone?:string;
 
     @ApiProperty({ required: false }) 
