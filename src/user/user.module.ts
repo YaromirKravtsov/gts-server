@@ -6,14 +6,14 @@ import { User } from './user.model';
 import { TokenModule } from 'src/token/token.module';
 import { ApplicationModule } from 'src/application/application.module';
 import { WhatsappModule } from 'src/whatsapp/whatsapp.module';
+import { LoggerModule } from 'src/logger/logger.module';
 
 @Module({
   controllers: [UserController],
   providers: [UserService],
   imports: [SequelizeModule.forFeature([User]),forwardRef(() =>TokenModule) ,
   forwardRef(() => WhatsappModule),
-  forwardRef(() => ApplicationModule),],
+  forwardRef(() => ApplicationModule),LoggerModule],
   exports: [UserService]
-  
 })
 export class UserModule {}

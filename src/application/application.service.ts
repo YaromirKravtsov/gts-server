@@ -23,6 +23,9 @@ import { parsePhoneNumberFromString } from 'libphonenumber-js';
 import { UserService } from 'src/user/user.service';
 import { AddRegularPlayerToTraing } from './dto/add-regular-player-to-training.dto';
 import { User } from 'src/user/user.model';
+import { FilesService } from 'src/files/files.service';
+import { NewUserMailDto } from 'src/mail/dto/new-user-dto';
+import { MailService } from 'src/mail/mail.service';
 @Injectable()
 export class ApplicationService {
   constructor(
@@ -34,36 +37,60 @@ export class ApplicationService {
     private readonly trainingService: TrainingService,
     @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
-  ) {}
+    private readonly filesService: FilesService,
+    private readonly mailService: MailService,
+  ) { }
   generateDeleteKey = () => Math.random().toString(36).substring(2, 9);
 
   async createApplication(dto: CreateApplicationDto) {
+    console.log(dto)
+    const { trainingDatesId, playerPhone, playerFile } = dto;
     const trainingDate = await this.trainingDatesRepository.findByPk(
-      dto.trainingDatesId,
+      trainingDatesId,
     );
+    // TODO 
+    // 1. Добавить верерфикацию почты
+    const candidate = await this.userService.findCandidate(dto.playerName, dto.playerPhone, dto.playerEmail)
+
+    if (candidate) {
+      let errorMessage;
+      switch(candidate.foundBy){
+        case 'username' : {
+          errorMessage = 'Ein Spieler mit diesem Namen ist bereits registriert.';
+          break;
+        } 
+        case 'email' : {
+          errorMessage = 'Ein Spieler mit dieser E-Mail-Adresse ist bereits registriert.';
+          break;
+        } 
+        case 'phone' : {
+          errorMessage = 'Ein Spieler mit dieser Telefonnummer ist bereits registriert.';
+          break;
+        } 
+      }
+
+      throw new HttpException(errorMessage, HttpStatus.CONFLICT);
+    }
 
     if (!trainingDate) {
       throw new NotFoundException(
-        `TrainingDates with ID ${dto.trainingDatesId} not found`,
+        `TrainingDates with ID ${trainingDatesId} not found`,
       );
     }
-    
-    const formattedPhone = this.formatPhoneNumber(dto.playerPhone);
 
-    const isRegistered =
-      await this.whatsappService.isWhatsAppRegistered(formattedPhone);
-    if (!isRegistered) {
-      console.error('Invalid phone number');
-      throw new BadRequestException(
-        `Ungültige Telefonnummer: WhatsApp konnte Ihre Nummer nicht finden.`,
-      );
+    let fileIUrl;
+    if (playerFile) {
+      fileIUrl = await this.filesService.createFile(playerFile);
     }
 
     const user = await this.userService.createNewUser({
       username: dto.playerName,
       phone: dto.playerPhone,
-      role: 'newPlayer',
+      role: 'documentVerification',
+      testMonthFileUrl: fileIUrl || null,
+      email: dto.playerEmail
     });
+
 
     const deleteKey = this.generateDeleteKey();
     const application = await this.applicationRepository.create({
@@ -83,64 +110,32 @@ export class ApplicationService {
       trainingDate.endDate,
     );
 
-    const deleteLink = `${process.env.FRONT_URL}?action=delete-anmeldung&key=${deleteKey}&id=${application.id}`;
-
+    const cancelUrl = `${process.env.FRONT_URL}?action=delete-anmeldung&key=${deleteKey}&id=${application.id}`;
     let trainer = null;
     if (trainingDate.trainerId) {
       trainer = await this.userService.findByPk(trainingDate.trainerId);
     }
-    const message = [
-      `Hallo, ${dto.playerName}  \n`,
-      'Ihre Anmeldung zum Probetraining war erfolgreich! Hier sind die Details:\n',
-      `- *Zeit:* ${date}\n`,
-      `- *Ort:* ${training.location.locationName}\n`,
-      `- *Gruppe:* ${training.group.groupName}\n`,
-      trainingDate.trainerId ? `*Trainer:* ${trainer.username}\n` : '',
-      `Falls Sie Ihre Anmeldung stornieren möchten, können Sie dies über folgenden Link tun: ${deleteLink}\n\n`,
-      'Wir freuen uns darauf, Sie beim Training zu sehen!\n',
-      'Mit freundlichen Grüßen,\n Tennisschule Gorovits Team',
-    ]
-      .join('')
-      .trim();
 
-    const groupMessage = [
-      `*Neue Registrierung für das Probetraining*\n`,
-      `*Zeit:* ${date}\n`,
-      `*Ort:* ${training.location.locationName}\n`,
-      `*Gruppe:* ${training.group.groupName}\n`,
-      `*Spieler:* ${dto.playerName}\n`,
-      `*Telefonnummer:* ${dto.playerPhone}`,
-      dto.playerComment ? `\n*Kommentar:* ${dto.playerComment}` : '',
-    ]
-      .join('')
-      .trim();
+    const mailDto: NewUserMailDto = {
+      email: dto.playerEmail,
+      fullName: dto.playerName,
+      date,
+      locationName: training.location.locationName,
+      groupName: training.group.groupName,
+      trainerName: trainer.username,
+      cancelUrl
+    }
 
-    setImmediate(async () => {
-      try {
-        //TODO После того как мариана напишет тексты для всех пользователей, то поменяться их
-        await this.whatsappService.sendMessage(
-          formattedPhone,
-          message,
-          training.group.isToAdult,
-        );
-        await this.whatsappService.sendMessageToGroup(groupMessage);
-      } catch (error) {
-        console.error(error);
-        throw new HttpException(
-          error.message || 'Internal Server Error',
-          error.status || HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-    });
+    if (training.group.isToAdult) {
+      await this.mailService.newUserAdultRegister(mailDto);
+    } else await this.mailService.newUserChildRegister(mailDto);
 
-    console.log('Application process completed');
     return application;
   }
 
   async addRegularPlayerToTraining(dto: AddRegularPlayerToTraing) {
     const { userId, trainingDatesId } = dto;
 
-    // Проверяем, существует ли указанная дата тренировки
     const trainingDate =
       await this.trainingDatesRepository.findByPk(trainingDatesId);
     if (!trainingDate) {
@@ -150,7 +145,6 @@ export class ApplicationService {
       );
     }
 
-    // Проверяем, есть ли уже запись на эту тренировку для данного пользователя
     const existingApplication = await this.applicationRepository.findOne({
       where: {
         trainingDatesId,
@@ -164,8 +158,6 @@ export class ApplicationService {
         HttpStatus.CONFLICT,
       );
     }
-
-    // Если записи нет, создаём новое приложение
     const application = await this.applicationRepository.create({
       isPresent: false,
       trainingDatesId,
@@ -305,26 +297,30 @@ export class ApplicationService {
         ],
         order: [
           [{ model: TrainingDates, as: 'trainingDates' }, 'startDate', 'ASC'],
-        ], // Указан псевдоним
+        ],
 
-        limit: Number(limit), // Число, не строка
-        offset: offset, // Число, не строка
+        limit: Number(limit),
+        offset: offset,
       });
 
     return {
-      items: items.map((application) => ({
-        id: application.id,
-        trainingDatesId: application.trainingDatesId,
-        isPresent: application.isPresent,
-        startDate: moment
-          .tz(application.trainingDates.startDate, 'Europe/Berlin')
-          .format(),
-        endDate: moment
-          .tz(application.trainingDates.endDate, 'Europe/Berlin')
-          .format(),
-        group: application.trainingDates.training.group,
-        location: application.trainingDates.training.location,
-      })),
+      items: items.map((application) => {
+        console.log('applicationapplication')
+
+        return {
+          id: application.id,
+          trainingDatesId: application.trainingDatesId,
+          isPresent: application.isPresent,
+          startDate: moment
+            .tz(application?.trainingDates?.startDate, 'Europe/Berlin')
+            .format(),
+          endDate: moment
+            .tz(application.trainingDates.endDate, 'Europe/Berlin')
+            .format(),
+          group: application.trainingDates.training.group,
+          location: application.trainingDates.training.location
+        }
+      }),
       total,
     };
   }

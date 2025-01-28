@@ -19,6 +19,9 @@ export class RegisterUserDto {
     readonly email?:string;
 
     @ApiProperty({ required: false }) 
+    testMonthFileUrl?: string
+
+    @ApiProperty({ required: false }) 
     @IsOptional()
     @IsString({ message: 'Email muss eine Zeichenfolge sein' })
     readonly role?: string;

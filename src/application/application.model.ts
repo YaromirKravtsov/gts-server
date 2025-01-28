@@ -27,7 +27,9 @@ export class Application extends Model<Application,ApplicationCreationAttrs>{
 
     @Column({type:DataType.STRING, allowNull:true})
     deleteKey:string;
-    
+
+
+
     @ForeignKey(()=> TrainingDates) 
     @Column({type: DataType.INTEGER, allowNull: false})
     trainingDatesId: number;
@@ -40,6 +42,7 @@ export class Application extends Model<Application,ApplicationCreationAttrs>{
     userId: number;
     @BelongsTo(()=> User)
     user: User;
+    
 
    
 }

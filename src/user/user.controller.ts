@@ -9,10 +9,19 @@ import { ApiBody, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { EditUserDto } from './dto/edit-user.dto';
 import { ChangePasswordDto } from './dto/chage-password.dto';
 import { JwtPayload, verify } from 'jsonwebtoken';
+import { CustomLogger } from 'src/logger/logger.service';
 
 @Controller('user')
 export class UserController {
-    constructor(private userService: UserService) { }
+    constructor(private userService: UserService,private readonly logger: CustomLogger) { }
+
+    @Get('/hello')
+    getHello(): string {
+      this.logger.log('Hello endpoint was called');
+      this.logger.error('Hello endpoint was called');
+      this.logger.warn('Hello endpoint was called');
+      return 'Hello World!';
+    }
 
     @Roles(['admin','trainer'])
     @UseGuards(RoleGuard)
