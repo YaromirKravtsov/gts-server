@@ -19,12 +19,32 @@ import { Training } from './training/training.model';
 import { Application } from './application/application.model';
 import { TrainingDates } from './training/trainig-dates.model';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
-
+import { CustomLogger } from './logger/logger.service';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
+import { MulterModule } from '@nestjs/platform-express';
 @Module({
+  providers: [
+    CustomLogger,
+    {
+      provide: APP_INTERCEPTOR,
+      useExisting: CustomLogger,
+    },
+  ],
+
+
   imports: [
+    MulterModule.register({
+      dest: './uploads', // Папка для сохранения файлов
+    }),
     ConfigModule.forRoot({
       envFilePath:`.${process.env.NODE_ENV}.env`
     }),
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'static'), // Путь к папке для статики
+      serveRoot: '/static', // URL-эндпоинт для доступа к файлам
+  }),
     SequelizeModule.forRoot({
       dialect: 'mysql',
       host: process.env.MYSQL_HOST,

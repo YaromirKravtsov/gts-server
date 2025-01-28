@@ -12,6 +12,7 @@ interface UserCreationAttrs{
     role:string;
     phone?: string;
     email?:string;
+    testMonthFileUrl?: string
 }
 
 @Table({tableName:'user',createdAt:false, updatedAt:false})
@@ -35,7 +36,9 @@ export class User extends Model<User,UserCreationAttrs>{
     @Column({type:DataType.STRING, allowNull:false})
     role:string;
 
-    
+    @Column({type:DataType.STRING, allowNull:true})
+    testMonthFileUrl:string;
+
     @Column({type:DataType.TEXT, allowNull:true})
     adminComment:string;
     

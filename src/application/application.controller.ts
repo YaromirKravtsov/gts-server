@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpException, HttpStatus, Param, ParseIntPipe, Post, Put, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpException, HttpStatus, Param, ParseIntPipe, Post, Put, Query, Res, UploadedFile, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApplicationService } from './application.service';
 import { Roles } from 'src/role/roles-auth-decorator';
 import { RoleGuard } from 'src/role/role.gurard';
@@ -6,6 +6,7 @@ import { CreateApplicationDto } from './dto/create-application.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { Response } from 'express';
 import { AddRegularPlayerToTraing } from './dto/add-regular-player-to-training.dto';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('Applications') // Группирует все маршруты контроллера в разделе "Applications" в Swagger
 @Controller('applications')
@@ -21,9 +22,11 @@ export class ApplicationController {
     @ApiOperation({ summary: 'Create a new application' })
     @ApiBody({ type: CreateApplicationDto })
     @ApiResponse({ status: 201, description: 'The application has been successfully created.' })
-    async createApplication(@Body() dto: CreateApplicationDto) {
+    @UseInterceptors(FileInterceptor('playerFile'))
+    async createApplication(@Body() dto: CreateApplicationDto, @UploadedFile() playerFile: File ) {
+        console.log('googogo')
         try {
-            return await this.applicationService.createApplication(dto);
+            return await this.applicationService.createApplication({...dto, playerFile});
         } catch (error) {
             console.error(error);
             throw new HttpException(

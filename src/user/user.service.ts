@@ -20,6 +20,7 @@ import * as bcrypt from 'bcrypt';
 import { ApplicationService } from 'src/application/application.service';
 import { WhatsAppService } from 'src/whatsapp/whatsapp/whatsapp.service';
 import { ChangePasswordDto } from './dto/chage-password.dto';
+import { Not } from 'sequelize-typescript';
 
 @Injectable()
 export class UserService {
@@ -34,18 +35,6 @@ export class UserService {
 
   async createNewUser(dto: RegisterUserDto) {
     try {
-      const candidate = await this.userRepository.findOne({
-        where: { username: dto.username },
-      });
-      // TODO Логика с индификацией клиента. Есть пролема того, что один и тот же клиент может зарегестрироваться 2 раза
-      /*  if (candidate) {
-                throw new HttpException(
-                    'Ein Benutzer mit dieser Name ist bereits registriert',
-                    HttpStatus.FORBIDDEN
-                );
-
-            } */
-
       const user = await this.userRepository.create({ ...dto });
 
       const returnData = {
@@ -93,14 +82,14 @@ export class UserService {
         password: hashPassword,
         role: 'trainer',
       });
-      
+
       const returnData = {
         id: user.id,
         username: user.username,
         password: password,
       };
 
-      if(dto.phone.trim() == '') return returnData;
+      if (dto.phone.trim() == '') return returnData;
 
       const formattedPhone = this.formatPhoneNumber(dto.phone);
 
@@ -393,9 +382,9 @@ export class UserService {
       );
     }
   }
-  async getUser(id: number) {
+
+  async getUser(id: number):Promise<any> {
     try {
-      console.log(id);
       const player = await this.userRepository.findByPk(id);
 
       if (!player) {
@@ -404,8 +393,10 @@ export class UserService {
           HttpStatus.NOT_FOUND,
         );
       }
-
-      return player;
+      const playerJson = player.toJSON()
+      return {
+        ...playerJson, testMonthFileUrl: process.env.STATIC_URL + 'static/' + playerJson.testMonthFileUrl
+      };
     } catch (error) {
       console.log(error);
       throw new HttpException(
@@ -423,4 +414,33 @@ export class UserService {
       throw new HttpException(e, HttpStatus.BAD_REQUEST);
     }
   }
+
+  async findCandidate(username: string, phone: string, email: string) {
+    try {
+      let candidate = await this.userRepository.findOne({
+        where: {
+          username, role: {
+            [Op.not]: ['admin', 'trainer'], 
+          },
+        }
+      });
+      if (candidate) return { candidate, foundBy: 'username' };
+
+      candidate = await this.userRepository.findOne({ where: { phone } });
+      if (candidate) return { candidate, foundBy: 'phone' };
+
+      candidate = await this.userRepository.findOne({ where: { email } });
+      if (candidate) return { candidate, foundBy: 'email' };
+
+      return null;
+    } catch (error) {
+      console.error(error);
+      throw new HttpException(
+        error.message || 'Internal Server Error',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+
 }

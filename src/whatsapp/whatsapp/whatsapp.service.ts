@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { join } from 'path';
-import { MessageMedia } from 'whatsapp-web.js';
+  import { MessageMedia } from 'whatsapp-web.js';
 const { Client, LocalAuth } = require("whatsapp-web.js")
 const qrcode = require("qrcode-terminal")
 
@@ -50,28 +50,14 @@ export class WhatsAppService implements OnModuleInit {
       this.client.initialize(); // Инициализируем заново
     });
   }
-  
-/* 
-  async sendMessage(phone: string, message: string): Promise<void> {
-    await this.ensureClientIsReady();
-
-    try {
-      const contactId = phone.replace('+', '').trim() + "@c.us";
-      console.log('Contact Id:' + contactId);
-      await this.client.sendMessage(contactId, message);
-      console.log(`Message sent to ${contactId}`);
-    } catch (error) {
-      console.error('Error sending message:', error);
-      throw error;
-    }
-  } */
-
 
   async sendMessage(phone: string, text: string, isSendFile?: boolean): Promise<void> {
     try {
       const contactId = phone.replace('+', '').trim() + "@c.us";
       if (isSendFile) {
-        const filePath = join(__dirname, '..', '..', 'static', 'test_month.pdf');
+        const filePath = join(process.cwd(), 'static', 'test_month.pdf'); // Локальный путь к файлу
+        console.log(filePath);
+        
         const media = MessageMedia.fromFilePath(filePath);
 
         await this.client.sendMessage(contactId, media, { caption: text });

@@ -25,4 +25,10 @@ export class CreateApplicationDto {
         description: 'ID of the training date this application is associated with' 
     })
     trainingDatesId: number;
+
+    @ApiProperty()
+    playerFile: File;
+    
+    @ApiProperty()
+    playerEmail: string
 }

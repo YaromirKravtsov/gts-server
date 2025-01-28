@@ -79,8 +79,6 @@ export class TrainingService {
 
     }
 
-
-
     async searchTrainings(date: string, groupId: string, locationId: string, page: string) {
         const recordsPerPage = 10;
         const pageNumber = parseInt(page, 10) || 1;
@@ -162,12 +160,12 @@ export class TrainingService {
                 startTime: moment.tz(trainingDate.startDate, 'Europe/Berlin').format(),
                 endTime: moment.tz(trainingDate.endDate, 'Europe/Berlin').format(),
             };
-
+            console.log(trainingWithRightDates)
             acc[dateKey].trainings.push(trainingWithRightDates);
 
             return acc;
         }, {});
-
+        
         return {
             trainings: Object.values(groupedByDate),
             totalPages,
@@ -469,6 +467,15 @@ export class TrainingService {
                 where: { id: trainingDatesId },
             }
         );
+        console.log(training)
+        console.log(dto)
+        const newStartTime = moment(startTime).format('HH:mm');
+        const newEndTime = moment(endTime).format('HH:mm');
+
+        if (new Date(newStartTime).getTime() === training.startTime.getTime() && new Date(newEndTime).getTime() === training.endTime.getTime()) {
+            console.log('Just coach')
+            return;
+        }
 
         // Отправляем уведомление всем участникам, зарегистрированным на обновленную дату
         for (const application of trainingDate.applications) {
@@ -548,8 +555,19 @@ export class TrainingService {
 
             updatedTrainingDates.push({ startDate: updatedStartDate, endDate: updatedEndDate });
         }
+        console.log(new Date(dto.startTime) == new Date(training.startTime))
+        console.log(new Date(training.startTime))
+        console.log(new Date(dto.startTime))
 
 
+        if (
+            new Date(dto.startTime).getTime() === new Date(training.startTime).getTime() &&
+            new Date(dto.endTime).getTime() === new Date(training.endTime).getTime()
+          ) {              console.log('Just coach')
+            return;
+        }
+
+        // send message
         const newDateMessage = [
             `Die Trainingseinheit wurde auf eine neue Zeit verlegt.\n`,
             `*Neue Zeitpunkte:* Die ersten Trainingseinheiten beginnen um ${newStartTime} und enden um ${newEndTime}.\n`,
@@ -559,7 +577,6 @@ export class TrainingService {
             `Bitte beachten Sie die neue Uhrzeit für Ihre Trainings.`,
             'Mit freundlichen Grüßen,\n Tennisschule Gorovits Team'
         ].join(' ').trim();
-
 
         for (const date of training.trainigDates) {
             for (const application of date.applications) {
