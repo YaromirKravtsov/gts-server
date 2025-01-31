@@ -13,17 +13,9 @@ import { CustomLogger } from 'src/logger/logger.service';
 
 @Controller('user')
 export class UserController {
-    constructor(private userService: UserService,private readonly logger: CustomLogger) { }
+    constructor(private userService: UserService, private readonly logger: CustomLogger) { }
 
-    @Get('/hello')
-    getHello(): string {
-      this.logger.log('Hello endpoint was called');
-      this.logger.error('Hello endpoint was called');
-      this.logger.warn('Hello endpoint was called');
-      return 'Hello World!';
-    }
-
-    @Roles(['admin','trainer'])
+    @Roles(['admin', 'trainer'])
     @UseGuards(RoleGuard)
     @Get('one/:id')
     @ApiOperation({ summary: 'Create one user' })
@@ -59,18 +51,18 @@ export class UserController {
         return await this.userService.getAllUsers();
     }
 
-    @Roles(['admin','trainer'])
+    @Roles(['admin', 'trainer'])
     @UseGuards(RoleGuard)
     @Get('/search-players')
     @ApiOperation({ summary: 'Search players' })
-    @ApiQuery({ name: 'searchQuery', required: false})
-    @ApiQuery({ name: 'role', required: false})
-    async searchPlayers(@Query('searchQuery') searchQuery:string, @Query('role') role:string) {
-        return await this.userService.searchPlayers(searchQuery,role);
+    @ApiQuery({ name: 'searchQuery', required: false })
+    @ApiQuery({ name: 'role', required: false })
+    async searchPlayers(@Query('searchQuery') searchQuery: string, @Query('role') role: string) {
+        return await this.userService.searchPlayers(searchQuery, role);
     }
 
 
-    @Roles(['admin','trainer'])
+    @Roles(['admin', 'trainer'])
     @UseGuards(RoleGuard)
     @Put('')
     @ApiOperation({ summary: 'Edit user' })
@@ -85,7 +77,7 @@ export class UserController {
     @Put('/convert/new-to-regular/:userId')
     @ApiOperation({ summary: 'Convert new user to regular' })
     @ApiParam({ name: 'userId' })
-    async convertNewToRegular(@Param() {userId} ) {
+    async convertNewToRegular(@Param() { userId }) {
         return await this.userService.convertNewToRegular(userId)
     }
 
@@ -114,23 +106,38 @@ export class UserController {
     @Put('chagePassword')
     @ApiOperation({ summary: 'User change pass' })
     @ApiBody({ type: ChangePasswordDto })
-    async chagePassword(@Body() dto: ChangePasswordDto,   @Req() req: Request,) {
+    async chagePassword(@Body() dto: ChangePasswordDto, @Req() req: Request,) {
         //@ts-ignore
         const refreshToken = req.cookies['refreshToken']; // Достаем куку
         console.log('Refresh Token:', refreshToken);
         const data = verify(refreshToken, process.env.JWT_REFRESH_SECRET) as JwtPayload
         console.log(data)
-        if((data.userId == dto.userId) || data.role == 'admin' ){
+        if ((data.userId == dto.userId) || data.role == 'admin') {
             const userData = await this.userService.chagePassword(dto);
-        }else{
+        } else {
             throw new ForbiddenException('Permission denied')
         }
 
-        
+
         return /* res.status(200).json(userData) */;
     }
 
-    
+
+
+    @Put('documents/confirm/:userId')
+    @ApiOperation({ summary: 'Confirm user documents' })
+    @ApiBody({ type: ChangePasswordDto })
+    async confirmDocument(@Param() { userId }) {
+        try{
+            await this.userService.confirmDocument(Number(userId))
+        }catch (error) {
+            console.error(error);
+            throw new HttpException(
+                error.message || 'Internal Server Error',
+                error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
 
 
 

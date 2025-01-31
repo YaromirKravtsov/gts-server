@@ -18,12 +18,12 @@ import { Location } from './location/location.model';
 import { Training } from './training/training.model';
 import { Application } from './application/application.model';
 import { TrainingDates } from './training/trainig-dates.model';
-import { WhatsappModule } from './whatsapp/whatsapp.module';
 import { CustomLogger } from './logger/logger.service';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { MulterModule } from '@nestjs/platform-express';
+import { ConfirmationModule } from './confirmation/confirmation.module';
 @Module({
   providers: [
     CustomLogger,
@@ -32,8 +32,6 @@ import { MulterModule } from '@nestjs/platform-express';
       useExisting: CustomLogger,
     },
   ],
-
-
   imports: [
     MulterModule.register({
       dest: './uploads', // Папка для сохранения файлов
@@ -61,7 +59,7 @@ import { MulterModule } from '@nestjs/platform-express';
     LocationModule,
     TrainingModule,
     ApplicationModule,
-    WhatsappModule,
+    ConfirmationModule,
     
   ]
 })

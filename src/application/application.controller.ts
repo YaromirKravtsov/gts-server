@@ -7,6 +7,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiQuery, ApiParam, ApiBea
 import { Response } from 'express';
 import { AddRegularPlayerToTraing } from './dto/add-regular-player-to-training.dto';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { RequestTrialTrainingDto } from './dto/request-trial-training.dto';
 
 @ApiTags('Applications') // Группирует все маршруты контроллера в разделе "Applications" в Swagger
 @Controller('applications')
@@ -23,10 +24,10 @@ export class ApplicationController {
     @ApiBody({ type: CreateApplicationDto })
     @ApiResponse({ status: 201, description: 'The application has been successfully created.' })
     @UseInterceptors(FileInterceptor('playerFile'))
-    async createApplication(@Body() dto: CreateApplicationDto, @UploadedFile() playerFile: File ) {
+    async createApplication(@Body() dto: CreateApplicationDto, @UploadedFile() playerFile: File) {
         console.log('googogo')
         try {
-            return await this.applicationService.createApplication({...dto, playerFile});
+            return await this.applicationService.createNewUserApplication({ ...dto, playerFile });
         } catch (error) {
             console.error(error);
             throw new HttpException(
@@ -36,6 +37,37 @@ export class ApplicationController {
         }
     }
 
+
+
+    @Get('/verify/:key')
+    @ApiOperation({ summary: 'verify user application by email' })
+    async verufyNewUserApplication(@Param() { key }, @Res() res: Response) {
+        try {
+            await this.applicationService.verufyNewUserApplication(key);
+            return res.redirect(302, process.env.FRONT_URL + '?action=showSuccessRegistrationInSystem');
+        } catch (error) {
+            console.error(error);
+            throw new HttpException(
+                error.message || 'Internal Server Error',
+                error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    @Post('/testmonth/trainig')
+    @ApiOperation({ summary: 'Add test training' })
+    @ApiBody({ type: RequestTrialTrainingDto })
+    async requestTrialTraining(@Body() dto: RequestTrialTrainingDto) {
+        try {
+            return await this.applicationService.requestTrialTraining(dto);
+        } catch (error) {
+            console.error(error);
+            throw new HttpException(
+                error.message || 'Internal Server Error',
+                error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
 
     @Roles(['admin'])
     @UseGuards(RoleGuard)
@@ -119,13 +151,13 @@ export class ApplicationController {
 
 
 
-    @Roles(['admin','trainer'])
+    @Roles(['admin', 'trainer'])
     @UseGuards(RoleGuard)
     @ApiBearerAuth()
     @Put('/isPresent/:applicationId')
     @ApiOperation({ summary: 'Set isPresent of application other value' })
     @ApiParam({ name: 'applicationId' })
-    async putIsPresent(@Param() {applicationId}) {
+    async putIsPresent(@Param() { applicationId }) {
         try {
             return await this.applicationService.putIsPresent(applicationId);
         } catch (error) {
@@ -198,7 +230,7 @@ export class ApplicationController {
             );
         }
     }
-    
+
     /**
     * Удалить заявку ID
     */

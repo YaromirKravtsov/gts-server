@@ -101,7 +101,7 @@ describe('User e2e', () => {
                 startTime: '2023-12-05T10:00:00Z',
                 endTime: '2023-12-05T10:00:00Z',
                 repeat_type: 2,
-                groupId: groupId, // TODO
+                groupId: groupId, 
                 locationId: locationId
             });
         trainingId = training.body.training.id;

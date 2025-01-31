@@ -35,8 +35,7 @@ export class Group extends Model<Group,GroupCreationAttrs>{
     order:number;
 
     
-    @Column({type:DataType.BOOLEAN, allowNull:false})
-    isToAdult:boolean;
+
 
     @HasMany(()=> Training)
     Trainings: Training[];

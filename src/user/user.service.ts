@@ -18,9 +18,10 @@ import { EditUserDto } from './dto/edit-user.dto';
 import { Op } from 'sequelize';
 import * as bcrypt from 'bcrypt';
 import { ApplicationService } from 'src/application/application.service';
-import { WhatsAppService } from 'src/whatsapp/whatsapp/whatsapp.service';
 import { ChangePasswordDto } from './dto/chage-password.dto';
 import { Not } from 'sequelize-typescript';
+import { Http } from 'winston/lib/winston/transports';
+import { MailService } from 'src/mail/mail.service';
 
 @Injectable()
 export class UserService {
@@ -30,7 +31,7 @@ export class UserService {
     private readonly tokenService: TokenService,
     @Inject(forwardRef(() => ApplicationService))
     private readonly applicationService: ApplicationService,
-    private whatsAppService: WhatsAppService,
+    private mailService: MailService
   ) { }
 
   async createNewUser(dto: RegisterUserDto) {
@@ -61,9 +62,8 @@ export class UserService {
     }
     return password;
   };
+
   async createTrainer(dto: RegisterUserDto) {
-
-
     try {
       const candidate = await this.userRepository.findOne({
         where: { username: dto.username },
@@ -93,14 +93,7 @@ export class UserService {
 
       const formattedPhone = this.formatPhoneNumber(dto.phone);
 
-      const isRegistered =
-        await this.whatsAppService.isWhatsAppRegistered(formattedPhone);
-      if (!isRegistered) {
-        console.error('Invalid phone number');
-        throw new BadRequestException(
-          `Ungültige Telefonnummer: WhatsApp konnte Ihre Nummer nicht finden.`,
-        );
-      }
+      const isRegistered = 0;
 
       const registrationMessage = [
         `Hallo ${dto.username},\n`,
@@ -117,15 +110,15 @@ export class UserService {
 
       setTimeout(async () => {
         try {
-          await this.whatsAppService.sendMessage(
+          /* await this.whatsAppService.sendMessage(
             formattedPhone,
             registrationMessage,
-          );
+          ); */
+          // TODO отправка письма на почту
         } catch (error) {
           console.error('Ошибка при отправке сообщения в WhatsApp:', error);
         }
       }, 0);
-
 
       return returnData;
     } catch (error) {
@@ -136,6 +129,7 @@ export class UserService {
       );
     }
   }
+
   public formatPhoneNumber(phone: string): string {
     let cleanedPhone = phone.replace(/\D/g, ''); // Удалить все символы, кроме цифр
 
@@ -154,6 +148,7 @@ export class UserService {
     console.log('Invalid phone number format');
     throw new Error('Invalid phone number format');
   }
+
   async editPlayer(dto: EditUserDto) {
     try {
       const player = await this.userRepository.findByPk(dto.id);
@@ -367,7 +362,7 @@ export class UserService {
   async chagePassword(dto: ChangePasswordDto) {
     try {
       const { userId, password } = dto;
-      console.log(userId, password);
+
       const user = await this.userRepository.findByPk(userId);
       const hashPassword = await bcrypt.hash(password, 3);
       await user.update({
@@ -383,7 +378,31 @@ export class UserService {
     }
   }
 
-  async getUser(id: number):Promise<any> {
+  async confirmDocument(userId: number) {
+    const user = await this.userRepository.findByPk(userId);
+
+    if (!user) {
+      throw new HttpException('User was not found', HttpStatus.NOT_FOUND)
+    }
+
+    if (user.role !== 'documentVerification') {
+      throw new HttpException('Der Spieler hat die Verifizierung bereits bestanden', HttpStatus.BAD_REQUEST)
+    }
+    const valueOfTrainings = await this.applicationService.countValueOfPossibleTrainings(userId);
+
+    await user.update({
+      role: 'trialMonth'
+    })
+    const nextTraining = await this.applicationService.getNextTraining(userId);
+    await this.mailService.confirmTrialMonth({
+      email: user.email,
+      fullName: user.username,
+      valueOfTrainings: 4/*  - valueOfTrainings */, 
+      nextTraining: nextTraining
+    })
+  }
+
+  async getUser(id: number): Promise<any> {
     try {
       const player = await this.userRepository.findByPk(id);
 
@@ -415,19 +434,16 @@ export class UserService {
     }
   }
 
-  async findCandidate(username: string, phone: string, email: string) {
+  async findCandidate(username: string, email: string) {
     try {
       let candidate = await this.userRepository.findOne({
         where: {
           username, role: {
-            [Op.not]: ['admin', 'trainer'], 
+            [Op.not]: ['admin', 'trainer'],
           },
         }
       });
       if (candidate) return { candidate, foundBy: 'username' };
-
-      candidate = await this.userRepository.findOne({ where: { phone } });
-      if (candidate) return { candidate, foundBy: 'phone' };
 
       candidate = await this.userRepository.findOne({ where: { email } });
       if (candidate) return { candidate, foundBy: 'email' };
@@ -440,6 +456,11 @@ export class UserService {
         error.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+
+  async getUserByEmail(email:string){
+    return await this.userRepository.findOne({where:{email}})
   }
 
 

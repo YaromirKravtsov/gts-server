@@ -8,12 +8,6 @@ export class CreateApplicationDto {
     playerName: string;
 
     @ApiProperty({ 
-        example: '+123456789', 
-        description: 'Phone number of the player' 
-    })
-    playerPhone: string;
-
-    @ApiProperty({ 
         example: 'Looking forward to the training!', 
         description: 'Optional comment from the player',
         required: false
