@@ -74,7 +74,7 @@ export class TrainingService {
                 startDate: currentStartDate.clone().utc().toDate(),
                 endDate: currentEndDate.clone().utc().toDate(),
                 adminComment,
-                trainerId
+                ...(trainerId ? { trainerId } : {})
             });
 
             if (repeat_type === 4) {
