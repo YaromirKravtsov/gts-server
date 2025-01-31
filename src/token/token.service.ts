@@ -16,12 +16,9 @@ export class TokenService {
 
     generateTokens(payload: PayloadDto): { accessToken: string; refreshToken: string } {
         try {
-
-            const accessToken = sign({ ...payload }, process.env.JWT_ACCESS_SECRET, { expiresIn: '15m' });//15m
+            //TODO Удалить логику с токеном рефреш токеном. Просто оставить раз в 3 дня 
+            const accessToken = sign({ ...payload }, process.env.JWT_ACCESS_SECRET, { expiresIn: '30d' });//15m
             const refreshToken = sign({ ...payload }, process.env.JWT_REFRESH_SECRET, { expiresIn: '30d' });
-
-
-
             return { accessToken, refreshToken }
         } catch (error) {
             throw error;

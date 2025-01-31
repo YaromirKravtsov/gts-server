@@ -4,16 +4,16 @@ import { TrainingService } from './training.service';
 import { Training } from './training.model';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { TrainingDates } from './trainig-dates.model';
-import { WhatsappModule } from 'src/whatsapp/whatsapp.module';
 import { ApplicationModule } from 'src/application/application.module';
+import { MailModule } from 'src/mail/mail.module';
+import { UserModule } from 'src/user/user.module';
 
 @Module({
   controllers: [TrainingController],
   providers: [TrainingService],
   imports: [
-    SequelizeModule.forFeature([Training, TrainingDates]),
-    forwardRef(() => WhatsappModule),
-    forwardRef(() => ApplicationModule),
+    SequelizeModule.forFeature([Training, TrainingDates]),MailModule,
+    forwardRef(() => ApplicationModule),forwardRef(() => UserModule)
   ],
   exports: [TrainingService],
 })

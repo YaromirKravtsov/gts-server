@@ -17,8 +17,7 @@ export class GroupService {
             const group = await this.groupRepository.create({
                 ...dto,
                 order: 1,
-                visible: true,
-                isToAdult: false
+                visible: true
             });
 
             return group;
@@ -61,9 +60,6 @@ export class GroupService {
             group.color = dto.color;
         }
 
-        if (dto.isToAdult !== undefined) {
-            group.isToAdult = dto.isToAdult;
-        }
 
 
         await group.save();
@@ -107,19 +103,7 @@ export class GroupService {
         return this.groupRepository.findByPk(id); // Возвращаем обновленный объект
     }
 
-    async updateIsToAdult(groupId){
-        try{
-        const group = await this.groupRepository.findByPk(groupId);
-
-            await this.groupRepository.update({ isToAdult: !group.isToAdult  }, { where: { id: groupId } }); 
-        }catch (error) {
-            console.error(error);
-            throw new HttpException(
-                error.message || 'Internal Server Error',
-                error.status || HttpStatus.INTERNAL_SERVER_ERROR,
-            );
-        }
-    }
+    
     // Метод для обновления поля `order`
     async updateOrder(id: number, targetId: number): Promise<Group> {
         // Получаем обе группы по их идентификаторам

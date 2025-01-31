@@ -23,11 +23,7 @@ export class UpdateGroupDto{
     color?: string;
 
 
-    
-    @ApiProperty({})
-    @IsOptional()
-    @IsBoolean()
-    isToAdult?: boolean;
+
 
     
 }

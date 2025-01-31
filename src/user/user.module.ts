@@ -5,15 +5,16 @@ import { SequelizeModule } from '@nestjs/sequelize';
 import { User } from './user.model';
 import { TokenModule } from 'src/token/token.module';
 import { ApplicationModule } from 'src/application/application.module';
-import { WhatsappModule } from 'src/whatsapp/whatsapp.module';
 import { LoggerModule } from 'src/logger/logger.module';
+import { MailModule } from 'src/mail/mail.module';
 
 @Module({
   controllers: [UserController],
   providers: [UserService],
   imports: [SequelizeModule.forFeature([User]),forwardRef(() =>TokenModule) ,
-  forwardRef(() => WhatsappModule),
-  forwardRef(() => ApplicationModule),LoggerModule],
+  forwardRef(() => ApplicationModule),LoggerModule, MailModule
+
+], 
   exports: [UserService]
 })
 export class UserModule {}

@@ -28,14 +28,11 @@ export class Application extends Model<Application,ApplicationCreationAttrs>{
     @Column({type:DataType.STRING, allowNull:true})
     deleteKey:string;
 
-
-
     @ForeignKey(()=> TrainingDates) 
     @Column({type: DataType.INTEGER, allowNull: false})
     trainingDatesId: number;
     @BelongsTo(()=> TrainingDates)
     trainingDates: TrainingDates;
-
 
     @ForeignKey(()=> User) 
     @Column({type: DataType.INTEGER, allowNull: false})

@@ -3,9 +3,6 @@ import {Model, Column, DataType, Table, HasMany } from "sequelize-typescript";
 import { Application } from "src/application/application.model";
 import { Token } from "src/token/token.model";
 
-
-
-
 interface UserCreationAttrs{
     username: string;
     password?: string;
@@ -45,7 +42,6 @@ export class User extends Model<User,UserCreationAttrs>{
     @HasMany(()=> Application)
     applications: Application[];
 
-        
     @HasMany(()=> Token)
     tokens: Token[];
     
