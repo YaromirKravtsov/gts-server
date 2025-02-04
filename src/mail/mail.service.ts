@@ -4,14 +4,16 @@ import 'moment-timezone/data/packed/latest.json';
 import { SendMailDto } from './dto/send-mail.dto';
 import { NewUserMailDto } from './dto/new-user-dto';
 import { ConfirmTrailMonthDto } from './dto/confirm-trail-month.dto';
+import * as path from 'path';
 const nodemailer = require('nodemailer');
 
 
 @Injectable()
 export class MailService {
     async sendMail(dto: SendMailDto) {
-        const { MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS } = process.env
-        console.log(MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS)
+        const { MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS } = process.env;
+        console.log(MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS);
+        
         let transporter = nodemailer.createTransport({
             host: MAIL_HOST,
             port: MAIL_PORT,
@@ -26,15 +28,17 @@ export class MailService {
             logger: true,
             debug: true
         });
-
+    
+        // Добавляем attachments, если они есть в dto
         let mailOptions = {
             from: `"Tennisschule Gorovits" <${process.env.MAIL_USER}>`,
             to: dto.recipient,
             subject: dto.subject,
-            html: dto.html
+            html: dto.html,
+            attachments: dto.attachments // <-- Обязательно передаем attachments
         };
-
-        // Отправьте письмо
+    
+        // Отправляем письмо
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
                 return console.log('Ошибка при отправке:', error);
@@ -42,8 +46,9 @@ export class MailService {
             console.log('Сообщение отправлено: %s', info.messageId);
             console.log('URL для просмотра: %s', nodemailer.getTestMessageUrl(info));
         });
-
     }
+    
+
     async newUserRegister(dto: NewUserMailDto) {
         await this.sendMail({
             recipient: dto.email,
@@ -101,7 +106,7 @@ export class MailService {
                             </div>
                             <div class="content">
                                 <p>Sehr geehrte/r ${dto.fullName},</p>
-                                <p>Vielen Dank für Ihre Anmeldung zum Probetraining!</p>
+                                <p>Vielen Dank für Ihre Anmeldung zum Probemonat!</p>
                                 <p>Unser Manager überprüft derzeit die von Ihnen hochgeladenen Dokumente. Sobald die Prüfung abgeschlossen ist, erhalten Sie eine Bestätigung per E-Mail mit weiteren Informationen zur Trainingseinheit.</p>
                                 <p>Falls Sie nicht am Training teilnehmen können und Ihre Anmeldung stornieren möchten, klicken Sie bitte auf den folgenden Link:</p>
                                 <p><a href="${dto.cancelUrl}" style="color: red; font-weight: bold;">Anmeldung stornieren</a></p>
@@ -210,6 +215,97 @@ export class MailService {
             subject: `Starten Sie Ihren Probemonat`
         });
     }
+
+    async confirmEmailAndSendFile(username: string, email: string, link: string) {
+        // HTML-содержимое письма на немецком языке
+        const htmlContent = `<!DOCTYPE html>
+    <html lang="de">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Registrierungsbestätigung</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f7f7f7;
+                margin: 0;
+                padding: 0;
+            }
+            .container {
+                width: 100%;
+                max-width: 600px;
+                margin: 0 auto;
+                background-color: #ffffff;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            }
+            .header {
+                text-align: center;
+                padding-bottom: 20px;
+                border-bottom: 1px solid #dddddd;
+            }
+            .content {
+                padding: 20px 0;
+                text-align: left;
+            }
+            .footer {
+                text-align: center;
+                padding-top: 20px;
+                border-top: 1px solid #dddddd;
+                font-size: 12px;
+                color: #999999;
+            }
+            .button {
+                display: inline-block;
+                padding: 10px 20px;
+                font-size: 16px;
+                color: #ffffff;
+                background-color: #28a745;
+                text-decoration: none;
+                border-radius: 5px;
+                margin-top: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>Vielen Dank für Ihre Registrierung!</h1>
+            </div>
+            <div class="content">
+                <p>Hallo ${username},</p>
+                <p>vielen Dank für Ihre Anmeldung. Bitte füllen Sie das beigefügte Dokument aus und senden Sie es über den folgenden Link zurück, damit unser Administrator Ihre Daten prüfen und Sie zu einem Probetraining zulassen kann.</p>
+                <p style="text-align: center;">
+                    <a class="button" href="${link}" target="_blank">Dokument absenden</a>
+                </p>
+                <p>Falls Sie sich nicht registriert haben, ignorieren Sie bitte diese Nachricht.</p>
+                <p>Mit freundlichen Grüßen,</p>
+                <p>Tennisschule Gorovits</p>
+            </div>
+            <div class="footer">
+                <p>&copy; 2024 Tennisschule Gorovits. Alle Rechte vorbehalten.</p>
+            </div>
+        </div>
+    </body>
+    </html>`;
+    const filePath = path.resolve(process.cwd(), 'static', 'test_month.pdf');
+
+        console.log(filePath)
+        // Вызов метода отправки письма с указанием прикрепленного файла
+        await this.sendMail({
+            recipient: email,
+            subject: 'Vielen Dank für Ihre Registrierung!',
+            html: htmlContent,
+            attachments: [
+                {
+                    filename: 'Testmonat - Wintersaison.pdf', // Имя файла, как оно будет отображаться у получателя
+                    path: filePath // Фактический путь к файлу на сервере или URL
+                }
+            ]
+        });
+    }
+
 
     async confirmEmail(username: string, email: string, link: string) {
         await this.sendMail({
@@ -381,7 +477,7 @@ export class MailService {
             `
         });
     }
-    async notifyTimeChange(dto: {username: string, email: string, training: any, date: string}) {
+    async notifyTimeChange(dto: { username: string, email: string, training: any, date: string }) {
         await this.sendMail({
             recipient: dto.email,
             subject: `Änderung der Trainingszeit`,
@@ -537,7 +633,7 @@ export class MailService {
             `
         });
     }
-    
+
     async trialTrainingsEnded(email: string, fullName: string) {
         await this.sendMail({
             recipient: email,

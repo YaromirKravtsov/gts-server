@@ -30,7 +30,7 @@ import { ConfirmationService } from 'src/confirmation/confirmation.service';
 import { ConfirmTrailMonthDto } from 'src/mail/dto/confirm-trail-month.dto';
 import { ConfirmTrailTrainigDto } from 'src/confirmation/dto/confirm-trail-training.dto';
 import { ConfirmEmailDto } from 'src/confirmation/dto/confirm-email.dto';
-import {  verify } from 'jsonwebtoken';
+import { verify } from 'jsonwebtoken';
 @Injectable()
 export class ApplicationService {
   constructor(
@@ -49,8 +49,9 @@ export class ApplicationService {
   generateDeleteKey = () => Math.random().toString(36).substring(2, 9);
 
   async createNewUserApplication(dto: CreateApplicationDto) {
+    console.log('dtodtodtodtodtodtodto')
     console.log(dto)
-    const { trainingDatesId, playerFile } = dto;
+    const { trainingDatesId/* , playerFile */ } = dto;
     const trainingDate = await this.trainingDatesRepository.findByPk(
       trainingDatesId,
     );
@@ -78,108 +79,114 @@ export class ApplicationService {
 
     if (!trainingDate) {
       throw new NotFoundException(
-        `TrainingDates with ID ${trainingDatesId} not found`,
+        ``,
       );
-    }
-
-    let fileIUrl;
-    if (playerFile) {
-      fileIUrl = await this.filesService.createFile(playerFile);
     }
 
     const key = this.confirmationService.generateKey({
       email: dto.playerEmail,
       username: dto.playerName,
-      fileIUrl: fileIUrl,
       trainingDatesId: dto.trainingDatesId,
-      comment: dto.playerComment
-    } as ConfirmEmailDto);
-    const vereficationUrl = process.env.SERVER_URL + 'applications/verify/'+ key;
+      comment: dto.playerComment,
 
-    await this.mailService.confirmEmail(dto.playerName, dto.playerEmail, vereficationUrl);
-    return;
+    } as ConfirmEmailDto);
+    const vereficationUrl = process.env.FRONT_URL + '?action=paperwork&key=' + key;
+
+    return await this.mailService.confirmEmailAndSendFile(dto.playerName, dto.playerEmail, vereficationUrl);
+
   }
 
-  async verufyNewUserApplication(key: string){
-    console.log('key')
-     const {username, fileIUrl,email,comment,trainingDatesId} = verify(key, process.env.JWT_ACCESS_SECRET) as ConfirmEmailDto;
+  async verufyNewUserApplication(key: string, file: File) {
 
-      // Вот здесь стоп и отправка 
-      const user = await this.userService.createNewUser({
-        username: username,
-        role: 'documentVerification',
-        testMonthFileUrl: fileIUrl || null,
-        email: email
-      });
-  
-  
-      const deleteKey = this.generateDeleteKey();
-      const application = await this.applicationRepository.create({
-        playerComment: comment,
-        trainingDatesId: trainingDatesId,
-        isPresent: false,
-        userId: user.id,
-        deleteKey,
-      });
-  
-      const training = await this.trainingService.getTraining(
-        trainingDatesId,
+    const { username, email, comment, trainingDatesId } = verify(key, process.env.JWT_ACCESS_SECRET) as ConfirmEmailDto;
+    const candidate = await this.userService.findCandidate(username, email);
+    if(candidate){
+      throw new NotFoundException(
+        `Der Spieler ist bereits im System registriert`,
       );
+    }
+    console.log(username, email, comment, trainingDatesId, file)
 
-      const trainingDate = await this.trainingDatesRepository.findByPk(
-        trainingDatesId,
-      );
-      const date = this.formatTrainingDate(
-        trainingDate.startDate,
-        trainingDate.endDate,
-      );
-  
-      const cancelUrl = `${process.env.FRONT_URL}?action=delete-anmeldung&key=${deleteKey}&id=${application.id}`;
-      let trainer = null;
-      if (trainingDate.trainerId) {
-        trainer = await this.userService.findByPk(trainingDate.trainerId);
-      }
-  
-      const mailDto: NewUserMailDto = {
-        email: email,
-        fullName: username,
-        date,
-        locationName: training.location.locationName,
-        groupName: training.group.groupName,
-        trainerName: trainer.username,
-        cancelUrl
-      }
-  
-      await this.mailService.newUserRegister(mailDto);
-  
-      return application;
+
+    let fileIUrl;
+    if (file) {
+      fileIUrl = await this.filesService.createFile(file);
+    }
+
+
+    const user = await this.userService.createNewUser({
+      username: username,
+      role: 'documentVerification',
+      testMonthFileUrl: fileIUrl,
+      email: email
+    });
+
+    const deleteKey = this.generateDeleteKey();
+    const application = await this.applicationRepository.create({
+      playerComment: comment,
+      trainingDatesId: trainingDatesId,
+      isPresent: false,
+      userId: user.id,
+      deleteKey,
+    });
+
+    const training = await this.trainingService.getTraining(
+      trainingDatesId,
+    );
+
+    const trainingDate = await this.trainingDatesRepository.findByPk(
+      trainingDatesId,
+    );
+    const date = this.formatTrainingDate(
+      trainingDate.startDate,
+      trainingDate.endDate,
+    );
+
+    const cancelUrl = `${process.env.FRONT_URL}?action=delete-anmeldung&key=${deleteKey}&id=${application.id}`;
+    let trainer = null;
+    if (trainingDate.trainerId) {
+      trainer = await this.userService.findByPk(trainingDate.trainerId);
+    }
+
+    const mailDto: NewUserMailDto = {
+      email: email,
+      fullName: username,
+      date,
+      locationName: training.location.locationName,
+      groupName: training.group.groupName,
+      trainerName: trainer.username,
+      cancelUrl
+    }
+
+    await this.mailService.newUserRegister(mailDto);
+
+    return application;
   }
 
   async createApplication(trainingDatesId: number, userId: number) {
     const existingApplication = await this.applicationRepository.findOne({
-        where: {
-            trainingDatesId: trainingDatesId,
-            userId: userId,
-        }
+      where: {
+        trainingDatesId: trainingDatesId,
+        userId: userId,
+      }
     });
 
     if (existingApplication) {
-      console.log('Sie sind bereits für dieses Training angemeldet')
-        throw new BadRequestException('Sie sind bereits für dieses Training angemeldet.');
-  
+      throw new BadRequestException('Sie sind bereits für dieses Training angemeldet.');
+
     }
 
     const deleteKey = this.generateDeleteKey();
 
     const application = await this.applicationRepository.create({
-        trainingDatesId: trainingDatesId,
-        isPresent: false,
-        userId: userId,
-        deleteKey,
+      trainingDatesId: trainingDatesId,
+      isPresent: false,
+      userId: userId,
+      deleteKey,
     });
 
     return { deleteKey, application };
-}
+  }
 
   async requestTrialTraining(dto: RequestTrialTrainingDto) {
     const { email, trainigDateId } = dto;
@@ -191,6 +198,18 @@ export class ApplicationService {
         HttpStatus.NOT_FOUND,
       );
     }
+
+    if (user.role == 'documentVerification') {
+      throw new HttpException('Die Unterlagen werden derzeit noch geprüft.', HttpStatus.BAD_REQUEST)
+    }
+
+
+    if (user.role !== 'trialMonth') {
+      throw new HttpException('Ihr Kontostatus erlaubt keine Anmeldung für das Training.', HttpStatus.BAD_REQUEST)
+    }
+
+
+
     const application = await this.applicationRepository.findOne({
       where: {
         trainingDatesId: trainigDateId,
@@ -198,24 +217,24 @@ export class ApplicationService {
       }
     })
 
-    if(application){
+    if (application) {
       throw new BadRequestException('Sie sind bereits für dieses Training angemeldet.')
     }
     const valueOfTrainings = await this.countValueOfPossibleTrainings(user.id);
-    console.log('valueOfTrainings ' + valueOfTrainings )
-    if(4 - valueOfTrainings <= 0){
+    console.log('valueOfTrainings ' + valueOfTrainings)
+    if (4 - valueOfTrainings <= 0) {
       this.mailService.trialTrainingsEnded(email, user.username);
     }
-    const key =  this.confirmationService.generateKey({
+    const key = this.confirmationService.generateKey({
       userId: user.id,
       email,
       trainigDateId
     })
 
 
-/*     await user.update({
-      role: 'trialMonth'
-    }) */
+    /*     await user.update({
+          role: 'trialMonth'
+        }) */
 
     const trainingDate = await this.trainingDatesRepository.findOne({
       where: {
@@ -574,7 +593,7 @@ export class ApplicationService {
     }
 
     const trainingDate = moment(application.trainingDates.startDate); // Дата тренировки
-    const now = moment(); 
+    const now = moment();
 
     if (trainingDate.isBefore(now)) {
       throw new BadRequestException('Diese Trainingseinheit hat bereits stattgefunden und kann nicht storniert werden.');
