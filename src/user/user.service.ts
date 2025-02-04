@@ -388,7 +388,7 @@ export class UserService {
     if (user.role !== 'documentVerification') {
       throw new HttpException('Der Spieler hat die Verifizierung bereits bestanden', HttpStatus.BAD_REQUEST)
     }
-    const valueOfTrainings = await this.applicationService.countValueOfPossibleTrainings(userId);
+    //const valueOfTrainings = await this.applicationService.countValueOfPossibleTrainings(userId);
 
     await user.update({
       role: 'trialMonth'
