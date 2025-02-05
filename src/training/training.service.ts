@@ -234,8 +234,10 @@ export class TrainingService {
                     include: [
                         { model: Group, attributes: { exclude: ['createdAt', 'updatedAt'] } },
                         { model: Location, attributes: { exclude: ['createdAt', 'updatedAt'] } },
+                    
                     ],
                 },
+                { model: User, as: 'trainer' },
                 {
                     model: Application,
                     attributes: [], // Не возвращаем сами записи из Application
@@ -245,6 +247,8 @@ export class TrainingService {
             order: [['startDate', 'ASC']],
         });
 
+        console.log(trainingDates[0].toJSON().trainer);
+
         return trainingDates.map(trainingDate => ({
             trainingDatesId: trainingDate.id,
             startTime: moment.tz(trainingDate.startDate, 'Europe/Berlin').format(),
@@ -252,6 +256,7 @@ export class TrainingService {
             group: trainingDate.training.group,
             location: trainingDate.training.location,
             applicationCount: (trainingDate as any).getDataValue('applicationCount'), // Получаем количество заявок
+            trainer: trainingDate.toJSON().trainer
         }));
     }
 

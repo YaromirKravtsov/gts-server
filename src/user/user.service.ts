@@ -22,6 +22,8 @@ import { ChangePasswordDto } from './dto/chage-password.dto';
 import { Not } from 'sequelize-typescript';
 import { Http } from 'winston/lib/winston/transports';
 import { MailService } from 'src/mail/mail.service';
+const fs = require('fs');
+const path = require('path');
 
 @Injectable()
 export class UserService {
@@ -33,6 +35,8 @@ export class UserService {
     private readonly applicationService: ApplicationService,
     private mailService: MailService
   ) { }
+  credentialsFilePath = path.resolve(process.cwd(), 'data', 'credentials.json');
+
 
   async createNewUser(dto: RegisterUserDto) {
     try {
@@ -68,6 +72,12 @@ export class UserService {
       const candidate = await this.userRepository.findOne({
         where: { username: dto.username },
       });
+      if(!dto.color){
+        throw new HttpException(
+          'Geben Sie die Farbe des Trainers ein',
+          HttpStatus.FORBIDDEN,
+        );
+      }
 
       const password = this.generatePassword(8);
       const hashPassword = await bcrypt.hash(password, 3);
@@ -77,6 +87,7 @@ export class UserService {
           HttpStatus.FORBIDDEN,
         );
       }
+  
       const user = await this.userRepository.create({
         ...dto,
         password: hashPassword,
@@ -89,36 +100,12 @@ export class UserService {
         password: password,
       };
 
-      if (dto.phone.trim() == '') return returnData;
+      this.addCredential(user.username, password);
+      if (dto.email.trim() == '') return returnData;
 
-      const formattedPhone = this.formatPhoneNumber(dto.phone);
-
-      const isRegistered = 0;
-
-      const registrationMessage = [
-        `Hallo ${dto.username},\n`,
-        `wir freuen uns, Ihnen mitteilen zu können, dass Ihre Registrierung in unserem System erfolgreich abgeschlossen wurde!\n`,
-        `Hier sind Ihre Anmeldedaten:\n`,
-        `Login: ${dto.username}\n`,
-        `Passwort: ${password}\n`,
-        `Viel Erfolg und alles Gute!\n`,
-        `Mit freundlichen Grüßen,\n`,
-        `Tennisschule Gorovits Team`,
-      ]
-        .join('')
-        .trim();
-
-      setTimeout(async () => {
-        try {
-          /* await this.whatsAppService.sendMessage(
-            formattedPhone,
-            registrationMessage,
-          ); */
-          // TODO отправка письма на почту
-        } catch (error) {
-          console.error('Ошибка при отправке сообщения в WhatsApp:', error);
-        }
-      }, 0);
+      this.mailService.newTrainerRegister({
+        username: user.username, email: user.email, password: password
+      })
 
       return returnData;
     } catch (error) {
@@ -166,6 +153,7 @@ export class UserService {
         phone: dto.phone,
         adminComment: dto.adminComment,
         role: dto.role,
+        color: dto.color || null
       });
 
       return {
@@ -397,7 +385,7 @@ export class UserService {
     await this.mailService.confirmTrialMonth({
       email: user.email,
       fullName: user.username,
-      valueOfTrainings: 4/*  - valueOfTrainings */, 
+      valueOfTrainings: 4/*  - valueOfTrainings */,
       nextTraining: nextTraining
     })
   }
@@ -412,7 +400,10 @@ export class UserService {
           HttpStatus.NOT_FOUND,
         );
       }
-      const playerJson = player.toJSON()
+      const playerJson = player.toJSON();
+      console.log()
+      const testMonthGlobalUrl = process.env.STATIC_URL + 'static/' + playerJson.testMonthFileUrl;
+      console.log(testMonthGlobalUrl)
       return {
         ...playerJson, testMonthFileUrl: process.env.STATIC_URL + 'static/' + playerJson.testMonthFileUrl
       };
@@ -459,9 +450,49 @@ export class UserService {
   }
 
 
-  async getUserByEmail(email:string){
-    return await this.userRepository.findOne({where:{email}})
+  async getUserByEmail(email: string) {
+    return await this.userRepository.findOne({ where: { email } })
   }
 
+
+
+
+
+
+
+
+
+
+
+
+
+  addCredential(username, password) {
+    // Читаем существующий файл
+    fs.readFile(this.credentialsFilePath, 'utf8', (readErr, data) => {
+      let credentials = [];
+      if (readErr) {
+        // Если файла не существует или произошла ошибка чтения, создаём пустой массив
+        console.warn('Файл не найден или ошибка чтения, будет создан новый файл.');
+      } else {
+        try {
+          credentials = JSON.parse(data);
+        } catch (parseErr) {
+          console.error('Ошибка парсинга JSON:', parseErr);
+        }
+      }
+
+      // Добавляем новую запись (здесь пароли сохраняются в открытом виде – НЕ ДЛЯ ПРОДАКШЕНА)
+      credentials.push({ username, password });
+
+      // Записываем обновлённые данные обратно в файл
+      fs.writeFile(this.credentialsFilePath, JSON.stringify(credentials, null, 2), 'utf8', (writeErr) => {
+        if (writeErr) {
+          console.error('Ошибка записи файла:', writeErr);
+        } else {
+          console.log('Данные успешно сохранены!');
+        }
+      });
+    });
+  }
 
 }

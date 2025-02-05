@@ -24,5 +24,11 @@ export class RegisterUserDto {
     @IsOptional()
     @IsString({ message: 'Email muss eine Zeichenfolge sein' })
     readonly role?: string;
+
+
+    @ApiProperty({ required: false }) 
+    @IsOptional()
+    @IsString({ message: 'Color of trainer' })
+    readonly color?: string;
 }
 

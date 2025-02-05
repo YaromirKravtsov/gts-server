@@ -110,6 +110,7 @@ export class MailService {
                                 <p>Unser Manager überprüft derzeit die von Ihnen hochgeladenen Dokumente. Sobald die Prüfung abgeschlossen ist, erhalten Sie eine Bestätigung per E-Mail mit weiteren Informationen zur Trainingseinheit.</p>
                                 <p>Falls Sie nicht am Training teilnehmen können und Ihre Anmeldung stornieren möchten, klicken Sie bitte auf den folgenden Link:</p>
                                 <p><a href="${dto.cancelUrl}" style="color: red; font-weight: bold;">Anmeldung stornieren</a></p>
+                                <p>Bitte beachten Sie, dass eine Stornierung nur möglich ist, wenn diese mindestens 24 Stunden vor Beginn des Trainings erfolgt.</p>
                                 <p>Mit freundlichen Grüßen,</p>
                                 <p>Ihr Tennisschule Gorovits</p>
                             </div>
@@ -125,6 +126,86 @@ export class MailService {
         })
     }
 
+    async newTrainerRegister(dto: {
+        email: string;
+        username: string;
+        password: string;
+    }) {
+        await this.sendMail({
+            recipient: dto.email,
+            subject: 'Trainer Registrierung Erfolgreich',
+            html: `<!DOCTYPE html>
+    <html lang="de">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Trainer Registrierung</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f7f7f7;
+                margin: 0;
+                padding: 0;
+            }
+            .container {
+                width: 100%;
+                max-width: 600px;
+                margin: 0 auto;
+                background-color: #ffffff;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            }
+            .header {
+                text-align: center;
+                padding-bottom: 20px;
+                border-bottom: 1px solid #dddddd;
+            }
+            .content {
+                padding: 20px 0;
+                text-align: left;
+            }
+            .footer {
+                text-align: center;
+                padding-top: 20px;
+                border-top: 1px solid #dddddd;
+                font-size: 12px;
+                color: #999999;
+            }
+            .footer a {
+                color: #999999;
+                text-decoration: none;
+            }
+            .footer a:hover {
+                text-decoration: underline;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>Willkommen bei Tennisschule Gorovits</h1>
+            </div>
+            <div class="content">
+                <p>Sehr geehrte/r ${dto.username},</p>
+                <p>Ihre Registrierung als Trainer/in bei der Tennisschule Gorovits war erfolgreich!</p>
+                <p>Bitte verwenden Sie die folgenden Zugangsdaten, um sich in unserem System anzumelden und Ihr Profil zu vervollständigen:</p>
+                <p><strong>Benutzername:</strong> ${dto.username}</p>
+                <p><strong>Passwort:</strong> ${dto.password}</p>
+                <p>Wir freuen uns auf eine erfolgreiche Zusammenarbeit!</p>
+                <p>Mit freundlichen Grüßen,</p>
+                <p>Tennisschule Gorovits</p>
+            </div>
+            <div class="footer">
+                <p>&copy; 2024 Tennisschule Gorovits. Alle Rechte vorbehalten.</p>
+            </div>
+        </div>
+    </body>
+    </html>`
+        });
+    }
+
+    
     async confirmTrialMonth(dto: ConfirmTrailMonthDto) {
         await this.sendMail({
             recipient: dto.email,
@@ -464,6 +545,8 @@ export class MailService {
                                 </ul>` : ''}
                                  <p>Falls Sie nicht am Training teilnehmen können und Ihre Anmeldung stornieren möchten, klicken Sie bitte auf den folgenden Link:</p>
                                 <p><a href="${cancelUrl}" style="color: red; font-weight: bold;">Anmeldung stornieren</a></p>
+                                <p>Bitte beachten Sie, dass eine Stornierung nur möglich ist, wenn diese mindestens 24 Stunden vor Beginn des Trainings erfolgt.</p>
+
                                 <p>Wir wünschen Ihnen viel Spaß und Erfolg bei Ihrem Training!</p>
                                 <p>Mit freundlichen Grüßen,</p>
                                 <p>Ihr Tennisschule Gorovits</p>

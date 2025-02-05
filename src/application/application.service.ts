@@ -49,12 +49,13 @@ export class ApplicationService {
   generateDeleteKey = () => Math.random().toString(36).substring(2, 9);
 
   async createNewUserApplication(dto: CreateApplicationDto) {
-    console.log('dtodtodtodtodtodtodto')
-    console.log(dto)
+
     const { trainingDatesId/* , playerFile */ } = dto;
+
     const trainingDate = await this.trainingDatesRepository.findByPk(
       trainingDatesId,
     );
+
     const candidate = await this.userService.findCandidate(dto.playerName, dto.playerEmail)
 
     if (candidate) {
@@ -100,7 +101,7 @@ export class ApplicationService {
 
     const { username, email, comment, trainingDatesId } = verify(key, process.env.JWT_ACCESS_SECRET) as ConfirmEmailDto;
     const candidate = await this.userService.findCandidate(username, email);
-    if(candidate){
+    if (candidate) {
       throw new NotFoundException(
         `Der Spieler ist bereits im System registriert`,
       );
@@ -587,10 +588,26 @@ export class ApplicationService {
       }]
     });
 
-    // Проверяем, есть ли связанная тренировка и сравниваем дату
+
     if (!application || !application.trainingDates) {
-      throw new NotFoundException('Anmeldung nicht gefunden oder Training existiert nicht.');
+      throw new HttpException('Die angeforderte Trainingseinheit wurde nicht gefunden. Möglicherweise haben Sie sie bereits gelöscht.', HttpStatus.NOT_FOUND);
     }
+
+    const trainingStartMoment = moment(application.trainingDates.startDate);
+
+    // Используем другое имя для текущего момента, чтобы избежать конфликта
+    const nowMoment = moment();
+    
+    // Получаем разницу в миллисекундах с помощью метода diff
+    const diffInMs = trainingStartMoment.diff(nowMoment);
+    
+    // Проверяем, если осталось менее 24 часов (24 часа = 24*60*60*1000 миллисекунд)
+    const msIn24Hours = 24 * 60 * 60 * 1000;
+    if (diffInMs > 0 && diffInMs < msIn24Hours) {
+      throw new HttpException('Die Stornierung der Trainingseinheit ist nur möglich, wenn Sie diese mindestens 24 Stunden vor Beginn mitteilen.', HttpStatus.NOT_FOUND);
+    }
+
+
 
     const trainingDate = moment(application.trainingDates.startDate); // Дата тренировки
     const now = moment();
