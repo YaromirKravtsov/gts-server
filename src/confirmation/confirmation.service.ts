@@ -8,12 +8,16 @@ import { MailService } from 'src/mail/mail.service';
 import { TrainingService } from 'src/training/training.service';
 import { UserService } from 'src/user/user.service';
 import { escape } from 'querystring';
+import { TelegramService } from 'src/telegram/telegram.service';
 type KeyDto = ConfirmEmailDto | ConfirmTrailTrainigDto
 @Injectable()
 export class ConfirmationService {
     constructor(
         @Inject(forwardRef(() => ApplicationService)) private readonly applicationService: ApplicationService,
-        private mailService: MailService, private trainigServer: TrainingService, @Inject(forwardRef(() => UserService)) private userService: UserService
+        private mailService: MailService, private trainigServer: TrainingService,
+        @Inject(forwardRef(() => UserService)) private userService: UserService,
+        private readonly telegramService: TelegramService
+
     ) { }
 
     generateKey(dto: KeyDto) { // два дто
@@ -22,15 +26,10 @@ export class ConfirmationService {
         return accessToken;
     }
 
-    /* async saveConfirmTrailTrainig(dto: KeyDto) {
-        const key = this.generateKey(dto);
-        return key;
-    }
- */
     async confirmTrailTrainig(key: string) {
         try {
             const data = verify(key, process.env.JWT_ACCESS_SECRET) as ConfirmTrailTrainigDto;
-            const {deleteKey, application} = await this.applicationService.createApplication(data.trainigDateId, data.userId);
+            const { deleteKey, application } = await this.applicationService.createApplication(data.trainigDateId, data.userId);
             const cancelUrl = `${process.env.FRONT_URL}?action=delete-anmeldung&key=${deleteKey}&id=${application.id}`;
             const trainingDate = await this.trainigServer.getTraining(data.trainigDateId);
             let trainer = null
@@ -45,21 +44,38 @@ export class ConfirmationService {
                 trainingDate.endTime,
             );
             if (0 > 4 - valueOfTrainings) {
-                this.mailService.trialTrainingsEnded(data.email, player.username);
+                await this.mailService.trialTrainingsEnded(data.email, player.username);
+                await this.telegramService.sendMessage(``)
                 // TODO Отправлять письмо Мариане
                 // Сделать телеграм бота, который будт отправлять сообщения 
-            } else{
-                this.mailService.successfullyRegisteredForTraining({
+            } else {
+                const dto = {
                     email: data.email,
                     fullName: player.username,
-                    valueOfTrainings: 4 - valueOfTrainings, 
+                    valueOfTrainings: 4 - valueOfTrainings,
                     nextTraining: {
                         date: date,
                         group: trainingDate.group.groupName,
                         location: trainingDate.location.locationName,
                         trainer: trainer?.username,
                     }
-                }, cancelUrl)
+                }
+                await this.mailService.successfullyRegisteredForTraining(dto, cancelUrl)
+                let message = `*Anmeldung zum Training* \n\n *${dto.fullName}* (${dto.email}).\nVerfügbare Trainingseinheiten: ${dto.valueOfTrainings}.`;
+
+                // Если данные о следующей тренировке присутствуют, добавляем их в сообщение
+                if (dto.nextTraining) {
+                    const { date, group, location, trainer } = dto.nextTraining;
+                    message += `\nNächste Einheit: ${date}\nGruppe: ${group}\nOrt: ${location}`;
+                    if (trainer) {
+                        message += `, Trainer: *${trainer}*`;
+                    }
+                }
+
+
+                // Отправляем сообщение через сервис TelegramService
+                await this.telegramService.sendMessage(message);
+
             }
         } catch (e) {
             console.log(e)

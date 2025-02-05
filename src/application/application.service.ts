@@ -31,6 +31,7 @@ import { ConfirmTrailMonthDto } from 'src/mail/dto/confirm-trail-month.dto';
 import { ConfirmTrailTrainigDto } from 'src/confirmation/dto/confirm-trail-training.dto';
 import { ConfirmEmailDto } from 'src/confirmation/dto/confirm-email.dto';
 import { verify } from 'jsonwebtoken';
+import { TelegramService } from 'src/telegram/telegram.service';
 @Injectable()
 export class ApplicationService {
   constructor(
@@ -45,6 +46,7 @@ export class ApplicationService {
     private readonly mailService: MailService,
     @Inject(forwardRef(() => ConfirmationService))
     private readonly confirmationService: ConfirmationService,
+    private readonly telegramService: TelegramService
   ) { }
   generateDeleteKey = () => Math.random().toString(36).substring(2, 9);
 
@@ -100,36 +102,42 @@ export class ApplicationService {
   async verufyNewUserApplication(key: string, file: File) {
 
     const { username, email, comment, trainingDatesId } = verify(key, process.env.JWT_ACCESS_SECRET) as ConfirmEmailDto;
-    const candidate = await this.userService.findCandidate(username, email);
-    if (candidate) {
-      throw new NotFoundException(
-        `Der Spieler ist bereits im System registriert`,
-      );
-    }
-    console.log(username, email, comment, trainingDatesId, file)
+    let candidate = await this.userService.findCandidate(username, email);
 
 
-    let fileIUrl;
+
+    let fileIUrl, user, application;
     if (file) {
       fileIUrl = await this.filesService.createFile(file);
     }
-
-
-    const user = await this.userService.createNewUser({
-      username: username,
-      role: 'documentVerification',
-      testMonthFileUrl: fileIUrl,
-      email: email
-    });
-
+    console.log(user)
     const deleteKey = this.generateDeleteKey();
-    const application = await this.applicationRepository.create({
-      playerComment: comment,
-      trainingDatesId: trainingDatesId,
-      isPresent: false,
-      userId: user.id,
-      deleteKey,
-    });
+    if (candidate) {
+      user = candidate.candidate;
+      application = this.applicationRepository.findOne({
+        where: {
+          userId: user.id
+        }
+      })
+
+    } else {
+      user = await this.userService.createNewUser({
+        username: username,
+        role: 'documentVerification',
+        testMonthFileUrl: fileIUrl,
+        email: email
+      });
+
+      application = await this.applicationRepository.create({
+        playerComment: comment,
+        trainingDatesId: trainingDatesId,
+        isPresent: false,
+        userId: user.id,
+        deleteKey,
+      });
+    }
+
+
 
     const training = await this.trainingService.getTraining(
       trainingDatesId,
@@ -160,7 +168,9 @@ export class ApplicationService {
     }
 
     await this.mailService.newUserRegister(mailDto);
-
+    const message = `Neuer Benutzer *${username}* hat seine Dokumente zur Überprüfung eingereicht.\nEmail: *${email}*`;
+    await this.telegramService.sendMessage(message);
+    //TOODO Реализовать логику проверки того, что пользователь не спамит своими доками. Спас защита
     return application;
   }
 
@@ -576,18 +586,37 @@ export class ApplicationService {
   }
 
   async deleteApplication(id: string, deleteKey: string) {
-
     const application = await this.applicationRepository.findOne({
-      where: {
-        id,
-        deleteKey,
-        isPresent: false,
-      },
-      include: [{
-        model: TrainingDates,
-      }]
+      where: { id },
+      include: [
+        {
+          model: TrainingDates,
+          include: [
+            {
+              model: Training,
+              attributes: ['startTime', 'endTime'],
+              include: [
+                {
+                  model: Group,
+                  attributes: { exclude: ['createdAt', 'updatedAt'] },
+                },
+                {
+                  model: Location,
+                  attributes: { exclude: ['createdAt', 'updatedAt'] },
+                },
+              ],
+            },
+          ],
+        },
+        {
+          model: User,
+        },
+      ]
     });
 
+    if (deleteKey !== application.deleteKey) {
+      throw new HttpException('Ungültiger Schlüssel. Bitte überprüfen Sie Ihren Löschschlüssel.', HttpStatus.BAD_REQUEST);
+    }
 
     if (!application || !application.trainingDates) {
       throw new HttpException('Die angeforderte Trainingseinheit wurde nicht gefunden. Möglicherweise haben Sie sie bereits gelöscht.', HttpStatus.NOT_FOUND);
@@ -595,21 +624,16 @@ export class ApplicationService {
 
     const trainingStartMoment = moment(application.trainingDates.startDate);
 
-    // Используем другое имя для текущего момента, чтобы избежать конфликта
     const nowMoment = moment();
-    
-    // Получаем разницу в миллисекундах с помощью метода diff
+
     const diffInMs = trainingStartMoment.diff(nowMoment);
-    
-    // Проверяем, если осталось менее 24 часов (24 часа = 24*60*60*1000 миллисекунд)
+
     const msIn24Hours = 24 * 60 * 60 * 1000;
     if (diffInMs > 0 && diffInMs < msIn24Hours) {
       throw new HttpException('Die Stornierung der Trainingseinheit ist nur möglich, wenn Sie diese mindestens 24 Stunden vor Beginn mitteilen.', HttpStatus.NOT_FOUND);
     }
 
-
-
-    const trainingDate = moment(application.trainingDates.startDate); // Дата тренировки
+    const trainingDate = moment(application.trainingDates.startDate);
     const now = moment();
 
     if (trainingDate.isBefore(now)) {
@@ -620,6 +644,33 @@ export class ApplicationService {
       throw new NotFoundException(`Die Registrierung wurde nicht gefunden`);
     }
     await application.destroy();
+
+
+    const startDate = moment
+    .tz(application.trainingDates.startDate, 'Europe/Berlin')
+    .format('DD.MM.YYYY HH:mm');
+  const endDate = moment
+    .tz(application.trainingDates.endDate, 'Europe/Berlin')
+    .format('DD.MM.YYYY HH:mm');
+
+  // Получаем информацию о тренировке
+  const location = application.trainingDates.training.location;
+  const group = application.trainingDates.training.group;
+
+  // Получаем имя пользователя, который отзаявился.
+  // Предполагается, что это поле доступно, например, как application.user.fullName.
+  // Если используется другое поле, замените его соответствующим образом.
+  const userName = application.user?.username;
+
+
+    const message = `*Abmeldung von Training*\n\n` +
+      `*Benutzer:* ${userName}\n` +
+      `*Zeitraum:* ${startDate} - ${endDate}\n` +
+      `*Ort:* ${location}\n` +
+      `*Gruppe:* ${group}`;
+
+    // Отправляем сообщение через Telegram-сервис (предполагается, что telegramService уже настроен)
+    await this.telegramService.sendMessage(message);
 
     return { message: 'Die Registrierung wurde erfolgreich gelöscht' };
   }

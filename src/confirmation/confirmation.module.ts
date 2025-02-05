@@ -8,11 +8,12 @@ import { MailModule } from 'src/mail/mail.module';
 import { TrainingService } from 'src/training/training.service';
 import { TrainingModule } from 'src/training/training.module';
 import { UserModule } from 'src/user/user.module';
+import { TelegramModule } from 'src/telegram/telegram.module';
 
 @Module({
   controllers: [ConfirmationController],
   providers: [ConfirmationService],
-  imports:[ forwardRef(() => ApplicationModule), MailModule,TrainingModule, forwardRef(() => UserModule)],
+  imports:[ forwardRef(() => ApplicationModule), MailModule,TrainingModule, forwardRef(() => UserModule), TelegramModule],
   exports: [ConfirmationService]
 })
 export class ConfirmationModule {}
