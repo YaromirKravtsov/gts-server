@@ -24,6 +24,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { MulterModule } from '@nestjs/platform-express';
 import { ConfirmationModule } from './confirmation/confirmation.module';
+import { TelegramModule } from './telegram/telegram.module';
 @Module({
   providers: [
     CustomLogger,
@@ -60,6 +61,7 @@ import { ConfirmationModule } from './confirmation/confirmation.module';
     TrainingModule,
     ApplicationModule,
     ConfirmationModule,
+    TelegramModule,
     
   ]
 })

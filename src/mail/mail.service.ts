@@ -109,7 +109,7 @@ export class MailService {
                                 <p>Vielen Dank für Ihre Anmeldung zum Probemonat!</p>
                                 <p>Unser Manager überprüft derzeit die von Ihnen hochgeladenen Dokumente. Sobald die Prüfung abgeschlossen ist, erhalten Sie eine Bestätigung per E-Mail mit weiteren Informationen zur Trainingseinheit.</p>
                                 <p>Falls Sie nicht am Training teilnehmen können und Ihre Anmeldung stornieren möchten, klicken Sie bitte auf den folgenden Link:</p>
-                                <p><a href="${dto.cancelUrl}" style="color: red; font-weight: bold;">Anmeldung stornieren</a></p>
+                               <!--   <p><a href="${dto.cancelUrl}" style="color: red; font-weight: bold;">Anmeldung stornieren</a></p> -->
                                 <p>Bitte beachten Sie, dass eine Stornierung nur möglich ist, wenn diese mindestens 24 Stunden vor Beginn des Trainings erfolgt.</p>
                                 <p>Mit freundlichen Grüßen,</p>
                                 <p>Ihr Tennisschule Gorovits</p>
@@ -477,13 +477,13 @@ export class MailService {
     async successfullyRegisteredForTraining(dto: ConfirmTrailMonthDto, cancelUrl: string) {
         await this.sendMail({
             recipient: dto.email,
-            subject: `Erfolgreiche Anmeldung zum Probetraining`,
+            subject: `Erfolgreiche Anmeldung zum Training`,
             html: `<!DOCTYPE html>
                     <html lang="de">
                     <head>
                         <meta charset="UTF-8">
                         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <title>Probetraining Bestätigung</title>
+                        <title>Training Bestätigung</title>
                         <style>
                             body {
                                 font-family: Arial, sans-serif;
@@ -528,11 +528,11 @@ export class MailService {
                     <body>
                         <div class="container">
                             <div class="header">
-                                <h1>Erfolgreiche Anmeldung zum Probetraining!</h1>
+                                <h1>Erfolgreiche Anmeldung zum Training!</h1>
                             </div>
                             <div class="content">
                                 <p>Sehr geehrte/r ${dto.fullName},</p>
-                                <p>Sie haben sich erfolgreich für ein Probetraining angemeldet!</p>
+                                <p>Sie haben sich erfolgreich für ein Training angemeldet!</p>
                                 <p>In Ihrem Testmonat stehen Ihnen noch <strong>${dto.valueOfTrainings}</strong> Trainingseinheiten zur Verfügung.</p>
                                 
                                 ${dto.nextTraining ? `

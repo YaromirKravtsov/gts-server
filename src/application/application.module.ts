@@ -10,6 +10,7 @@ import { FilesModule } from 'src/files/files.module';
 import { MailModule } from 'src/mail/mail.module';
 import { ConfirmationService } from 'src/confirmation/confirmation.service';
 import { ConfirmationModule } from 'src/confirmation/confirmation.module';
+import { TelegramModule } from 'src/telegram/telegram.module';
 
 @Module({
   providers: [ApplicationService],
@@ -19,6 +20,7 @@ import { ConfirmationModule } from 'src/confirmation/confirmation.module';
     forwardRef(() => TrainingModule),
     forwardRef(() => UserModule),
     forwardRef(() => ConfirmationModule),
+    TelegramModule
     
   ],
   exports: [ApplicationService],
