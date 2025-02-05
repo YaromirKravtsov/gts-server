@@ -9,7 +9,8 @@ interface UserCreationAttrs{
     role:string;
     phone?: string;
     email?:string;
-    testMonthFileUrl?: string
+    testMonthFileUrl?: string;
+    color?: string
 }
 
 @Table({tableName:'user',createdAt:false, updatedAt:false})
@@ -29,6 +30,9 @@ export class User extends Model<User,UserCreationAttrs>{
     
     @Column({type:DataType.STRING,  allowNull:true})
     password:string;
+
+    @Column({type:DataType.STRING,  allowNull:true})
+    color:string;
 
     @Column({type:DataType.STRING, allowNull:false})
     role:string;

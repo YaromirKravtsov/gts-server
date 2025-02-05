@@ -40,10 +40,11 @@ export class TrainingDates extends Model<TrainingDates, TrainingDatesCreationAtt
     applications: Application[];
 
 
-    @ForeignKey(()=> User) 
-    @Column({type: DataType.INTEGER, allowNull: true})
+    @ForeignKey(() => User)
+    @Column({ type: DataType.INTEGER, allowNull: true })
     trainerId: number;
-    @BelongsTo(()=> User)
+    
+    @BelongsTo(() => User)
     trainer: User;
 }
 

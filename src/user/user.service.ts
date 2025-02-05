@@ -72,6 +72,12 @@ export class UserService {
       const candidate = await this.userRepository.findOne({
         where: { username: dto.username },
       });
+      if(!dto.color){
+        throw new HttpException(
+          'Geben Sie die Farbe des Trainers ein',
+          HttpStatus.FORBIDDEN,
+        );
+      }
 
       const password = this.generatePassword(8);
       const hashPassword = await bcrypt.hash(password, 3);
@@ -81,6 +87,7 @@ export class UserService {
           HttpStatus.FORBIDDEN,
         );
       }
+  
       const user = await this.userRepository.create({
         ...dto,
         password: hashPassword,
@@ -146,6 +153,7 @@ export class UserService {
         phone: dto.phone,
         adminComment: dto.adminComment,
         role: dto.role,
+        color: dto.color || null
       });
 
       return {
