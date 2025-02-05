@@ -20,8 +20,8 @@ export class CreateApplicationDto {
     })
     trainingDatesId: number;
 
-    @ApiProperty()
-    playerFile: File;
+/*     @ApiProperty()
+    playerFile: File; */
     
     @ApiProperty()
     playerEmail: string

@@ -23,11 +23,11 @@ export class ApplicationController {
     @ApiOperation({ summary: 'Create a new application' })
     @ApiBody({ type: CreateApplicationDto })
     @ApiResponse({ status: 201, description: 'The application has been successfully created.' })
-    @UseInterceptors(FileInterceptor('playerFile'))
-    async createApplication(@Body() dto: CreateApplicationDto, @UploadedFile() playerFile: File) {
+    /* @UseInterceptors(FileInterceptor('playerFile')) */
+    async createApplication(@Body() dto: CreateApplicationDto/* , @UploadedFile() playerFile: File */) {
         console.log('googogo')
         try {
-            return await this.applicationService.createNewUserApplication({ ...dto, playerFile });
+            return await this.applicationService.createNewUserApplication(dto);
         } catch (error) {
             console.error(error);
             throw new HttpException(
@@ -39,12 +39,13 @@ export class ApplicationController {
 
 
 
-    @Get('/verify/:key')
+    @Post('/verify/docs/')
     @ApiOperation({ summary: 'verify user application by email' })
-    async verufyNewUserApplication(@Param() { key }, @Res() res: Response) {
+    @UseInterceptors(FileInterceptor('file')) 
+    async verufyNewUserApplication(@Body('key') key, @UploadedFile() file: File) {
         try {
-            await this.applicationService.verufyNewUserApplication(key);
-            return res.redirect(302, process.env.FRONT_URL + '?action=showSuccessRegistrationInSystem');
+            await this.applicationService.verufyNewUserApplication(key,file);
+    /*         return res.redirect(302, process.env.FRONT_URL + '?action=showSuccessRegistrationInSystem'); */
         } catch (error) {
             console.error(error);
             throw new HttpException(
