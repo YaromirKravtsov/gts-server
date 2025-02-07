@@ -13,7 +13,7 @@ export class MailService {
     async sendMail(dto: SendMailDto) {
         const { MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS } = process.env;
         console.log(MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS);
-        
+
         let transporter = nodemailer.createTransport({
             host: MAIL_HOST,
             port: MAIL_PORT,
@@ -28,7 +28,7 @@ export class MailService {
             logger: true,
             debug: true
         });
-    
+
         // Добавляем attachments, если они есть в dto
         let mailOptions = {
             from: `"Tennisschule Gorovits" <${process.env.MAIL_USER}>`,
@@ -37,7 +37,7 @@ export class MailService {
             html: dto.html,
             attachments: dto.attachments // <-- Обязательно передаем attachments
         };
-    
+
         // Отправляем письмо
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
@@ -47,7 +47,7 @@ export class MailService {
             console.log('URL для просмотра: %s', nodemailer.getTestMessageUrl(info));
         });
     }
-    
+
 
     async newUserRegister(dto: NewUserMailDto) {
         await this.sendMail({
@@ -205,7 +205,7 @@ export class MailService {
         });
     }
 
-    
+
     async confirmTrialMonth(dto: ConfirmTrailMonthDto) {
         await this.sendMail({
             recipient: dto.email,
@@ -370,7 +370,7 @@ export class MailService {
         </div>
     </body>
     </html>`;
-    const filePath = path.resolve(process.cwd(), 'static', 'test_month.pdf');
+        const filePath = path.resolve(process.cwd(), 'static', 'test_month.pdf');
 
         console.log(filePath)
         // Вызов метода отправки письма с указанием прикрепленного файла
@@ -533,7 +533,12 @@ export class MailService {
                             <div class="content">
                                 <p>Sehr geehrte/r ${dto.fullName},</p>
                                 <p>Sie haben sich erfolgreich für ein Training angemeldet!</p>
-                                <p>In Ihrem Testmonat stehen Ihnen noch <strong>${dto.valueOfTrainings}</strong> Trainingseinheiten zur Verfügung.</p>
+                                <p>
+                                    {dto.valueOfTrainings > 0 
+                                        ? <>In Ihrem Testmonat stehen Ihnen noch <strong>{dto.valueOfTrainings}</strong> Trainingseinheiten zur Verfügung.</> 
+                                        : <>In Ihrem Testmonat sind keine Trainingseinheiten mehr verfügbar.</>}
+                                    </p>
+
                                 
                                 ${dto.nextTraining ? `
                                 <h3>Ihre nächste geplante Trainingseinheit:</h3>
