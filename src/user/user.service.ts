@@ -252,7 +252,7 @@ export class UserService {
     }
   }
 
-  async searchPlayers(searchQuery?: string, role: string = 'admin') {
+  async searchPlayers(searchQuery?: string, role: string = 'admin', page: number = 1, limit: number = 10) {
     try {
       console.log('rolerolerolerolerolerole');
       console.log(role);
@@ -261,38 +261,49 @@ export class UserService {
       if (role == 'player') {
         whereConditions = {
           role: {
-            [Op.notIn]: ['admin', 'trainer'], // Исключаем роли 'admin' и 'trainer'
+            [Op.notIn]: ['admin', 'trainer'],
           },
         };
       } else if (role == 'admin') {
         whereConditions = {
           role: {
-            [Op.in]: ['admin', 'trainer'], // Исключаем роли 'admin' и 'trainer'
+            [Op.in]: ['admin', 'trainer'],
           },
         };
       }
       if (role == 'trainer') {
         whereConditions = {
           role: {
-            [Op.in]: ['trainer'], // Исключаем роли 'admin' и 'trainer'
+            [Op.in]: ['trainer'],
           },
         };
       }
 
       if (searchQuery && searchQuery.trim() !== '') {
         whereConditions[Op.or] = [
-          { username: { [Op.like]: `%${searchQuery}%` } }, // Поиск по имени
-          { phone: { [Op.like]: `%${searchQuery}%` } }, // Поиск по телефону
-          { email: { [Op.like]: `%${searchQuery}%` } }, // Поиск по email
+          { username: { [Op.like]: `%${searchQuery}%` } },
+          { phone: { [Op.like]: `%${searchQuery}%` } },
+          { email: { [Op.like]: `%${searchQuery}%` } },
         ];
       }
       console.log(whereConditions);
+      const offset = (page - 1) * limit;
+
+      const totalPlayers = await this.userRepository.count({ where: whereConditions });
+      const totalPages = Math.ceil(totalPlayers / limit);
+
       const players = await this.userRepository.findAll({
         where: whereConditions,
-        attributes: { exclude: ['password'] }, // Исключаем поле password
+        attributes: { exclude: ['password'] },
+        limit,
+        offset,
       });
 
-      return players;
+      return {
+        players,
+        totalPages,
+        currentPage: page,
+      };
     } catch (error) {
       console.error(error);
       throw new HttpException(
@@ -301,6 +312,8 @@ export class UserService {
       );
     }
   }
+
+
 
   async login(dto: LoginDto) {
     try {

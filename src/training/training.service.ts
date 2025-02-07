@@ -197,20 +197,21 @@ export class TrainingService {
         };
     }
 
-    async getTrainingsForMonth(date: string, trainerId?: number) {
-        const startDate = new Date(date);
-        const year = startDate.getFullYear();
-        const month = startDate.getMonth();
+    async getTrainingsForMonth(monthStart: string, monthEnd: string, trainerId?: number) {
 
-        const monthStart = new Date(year, month, 1);
-        const monthEnd = new Date(year, month + 1, 1);
+        const formattedMonthStart = new Date(monthStart).toISOString();
+        const formattedMonthEnd = new Date(monthEnd);
+        formattedMonthEnd.setDate(formattedMonthEnd.getDate() + 1);
 
         const whereConditions: any = {
             startDate: {
-                [Op.gte]: monthStart,
-                [Op.lt]: monthEnd,
+                [Op.gte]: formattedMonthStart,
+                [Op.lt]: formattedMonthEnd.toISOString(),
             },
         };
+
+        console.log(formattedMonthStart, formattedMonthEnd);
+
 
         if (Number(trainerId)) {
             whereConditions.trainerId = trainerId;
@@ -234,7 +235,7 @@ export class TrainingService {
                     include: [
                         { model: Group, attributes: { exclude: ['createdAt', 'updatedAt'] } },
                         { model: Location, attributes: { exclude: ['createdAt', 'updatedAt'] } },
-                    
+
                     ],
                 },
                 { model: User, as: 'trainer' },
@@ -247,7 +248,7 @@ export class TrainingService {
             order: [['startDate', 'ASC']],
         });
 
-        console.log(trainingDates[0].toJSON().trainer);
+
 
         return trainingDates.map(trainingDate => ({
             trainingDatesId: trainingDate.id,
@@ -570,18 +571,18 @@ export class TrainingService {
             updatedTrainingDates.push({ startDate: updatedStartDate, endDate: updatedEndDate });
         }
 
-      /*   for (const date of training.trainigDates) {
-            for (const application of date.applications) {
-                const date = this.formatTrainingDate(
-                    trainingDate.startDate,
-                    trainingDate.endDate,
-                );
-                const user = await this.userService.getUser(application.userId)
-                await this.mailService.notifyTimeChange({
-                    date, username: user.username, email: user.email, training
-                })
-            }
-        } */ // TODO Присылается дофига писем
+        /*   for (const date of training.trainigDates) {
+              for (const application of date.applications) {
+                  const date = this.formatTrainingDate(
+                      trainingDate.startDate,
+                      trainingDate.endDate,
+                  );
+                  const user = await this.userService.getUser(application.userId)
+                  await this.mailService.notifyTimeChange({
+                      date, username: user.username, email: user.email, training
+                  })
+              }
+          } */ // TODO Присылается дофига писем
 
         return { message: `Training und alle zugehörigen TrainingDates mit ID ${training.id} wurden aktualisiert.` };
     }
@@ -608,12 +609,12 @@ export class TrainingService {
     private formatTrainingDate(startDate: Date, endDate: Date): string {
         const format = 'DD.MM.YYYY HH:mm';
         const start = moment(startDate).tz('Europe/Berlin').format(format);
-        const end = moment(endDate).tz('Europe/Berlin').format('HH:mm'); 
+        const end = moment(endDate).tz('Europe/Berlin').format('HH:mm');
         return `${start} - ${end}`;
     }
 
     public formatPhoneNumber(phone: string): string {
-        let cleanedPhone = phone.replace(/\D/g, ''); 
+        let cleanedPhone = phone.replace(/\D/g, '');
 
         if (phone.startsWith('+')) {
             return phone.replace(/\s/g, '');
