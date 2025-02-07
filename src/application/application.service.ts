@@ -234,8 +234,9 @@ export class ApplicationService {
     const valueOfTrainings = await this.countValueOfPossibleTrainings(user.id);
     console.log('valueOfTrainings ' + valueOfTrainings)
     if (4 - valueOfTrainings <= 0) {
-      this.mailService.trialTrainingsEnded(email, user.username);
+      return this.mailService.trialTrainingsEnded(email, user.username);
     }
+    
     const key = this.confirmationService.generateKey({
       userId: user.id,
       email,
@@ -243,10 +244,7 @@ export class ApplicationService {
     })
 
 
-    /*     await user.update({
-          role: 'trialMonth'
-        }) */
-
+ 
     const trainingDate = await this.trainingDatesRepository.findOne({
       where: {
         id: trainigDateId,
@@ -652,10 +650,10 @@ export class ApplicationService {
   const endDate = moment
     .tz(application.trainingDates.endDate, 'Europe/Berlin')
     .format('DD.MM.YYYY HH:mm');
-
+ 
   // Получаем информацию о тренировке
-  const location = application.trainingDates.training.location;
-  const group = application.trainingDates.training.group;
+  const location = application.trainingDates.training.location.locationName;
+  const group = application.trainingDates.training.group.groupName;
 
   // Получаем имя пользователя, который отзаявился.
   // Предполагается, что это поле доступно, например, как application.user.fullName.
@@ -668,7 +666,7 @@ export class ApplicationService {
       `*Zeitraum:* ${startDate} - ${endDate}\n` +
       `*Ort:* ${location}\n` +
       `*Gruppe:* ${group}`;
-
+    
     // Отправляем сообщение через Telegram-сервис (предполагается, что telegramService уже настроен)
     await this.telegramService.sendMessage(message);
 
