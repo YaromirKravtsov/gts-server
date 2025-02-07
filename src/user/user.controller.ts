@@ -57,8 +57,16 @@ export class UserController {
     @ApiOperation({ summary: 'Search players' })
     @ApiQuery({ name: 'searchQuery', required: false })
     @ApiQuery({ name: 'role', required: false })
-    async searchPlayers(@Query('searchQuery') searchQuery: string, @Query('role') role: string) {
-        return await this.userService.searchPlayers(searchQuery, role);
+    @ApiQuery({ name: 'page', required: false, type: 'number' })
+    @ApiQuery({ name: 'limit', required: false, type: 'number' })
+    async searchPlayers(
+        @Query('searchQuery') searchQuery: string,
+        @Query('role') role: string,
+        @Query('page') page: number = 1,
+        @Query('limit') limit: number = 10
+    ) {
+        console.log(searchQuery, role, Number(page), Number(limit))
+        return await this.userService.searchPlayers(searchQuery, role, Number(page), Number(limit));
     }
 
 
@@ -128,9 +136,9 @@ export class UserController {
     @ApiOperation({ summary: 'Confirm user documents' })
     @ApiBody({ type: ChangePasswordDto })
     async confirmDocument(@Param() { userId }) {
-        try{
+        try {
             await this.userService.confirmDocument(Number(userId))
-        }catch (error) {
+        } catch (error) {
             console.error(error);
             throw new HttpException(
                 error.message || 'Internal Server Error',

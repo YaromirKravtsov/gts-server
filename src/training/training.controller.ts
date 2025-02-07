@@ -63,11 +63,13 @@ export class TrainingController {
     @ApiBearerAuth()
     @Get('date')
     @ApiOperation({ summary: 'Get trainings for a specific month' })
-    @ApiQuery({ name: 'date', description: 'Date in YYYY-MM-DD format to define the month' })
+    @ApiQuery({ name: 'startDate', description: 'Date in YYYY-MM-DD format to define the month' })
+    @ApiQuery({ name: 'endDate', description: 'Date in YYYY-MM-DD format to define the month' })
+
     @ApiQuery({ name: 'trainerId' ,required: false})
     @ApiResponse({ status: 200, description: 'List of trainings for the specified month.' })
-    async getTrainingsForMonth(@Query('date') date: string, @Query('trainerId') trainerId: number) {
-        return await this.trainingService.getTrainingsForMonth(date,trainerId);
+    async getTrainingsForMonth(@Query('startDate') startDate: string,@Query('endDate') endDate: string, @Query('trainerId') trainerId: number) {
+        return await this.trainingService.getTrainingsForMonth(startDate, endDate,trainerId);
     }
 
     /**
