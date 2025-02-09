@@ -533,10 +533,12 @@ export class MailService {
                             <div class="content">
                                 <p>Sehr geehrte/r ${dto.fullName},</p>
                                 <p>Sie haben sich erfolgreich für ein Training angemeldet!</p>
-                                <p>
-                                    {dto.valueOfTrainings > 0 
-                                        ? <>In Ihrem Testmonat stehen Ihnen noch <strong>{dto.valueOfTrainings}</strong> Trainingseinheiten zur Verfügung.</> 
-                                        : <>In Ihrem Testmonat sind keine Trainingseinheiten mehr verfügbar.</>}
+                                <p> //TODO Тут не правльный текст 
+                                ${dto.valueOfTrainings && dto.valueOfTrainings > 0
+                    ? `In Ihrem Testmonat stehen Ihnen noch <strong>${dto.valueOfTrainings}</strong> Trainingseinheiten zur Verfügung.`
+                    : `In Ihrem Testmonat sind keine Trainingseinheiten mehr verfügbar.`
+                }
+
                                     </p>
 
                                 
