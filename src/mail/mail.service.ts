@@ -109,7 +109,7 @@ export class MailService {
                                 <p>Vielen Dank für Ihre Anmeldung zum Probemonat!</p>
                                 <p>Unser Manager überprüft derzeit die von Ihnen hochgeladenen Dokumente. Sobald die Prüfung abgeschlossen ist, erhalten Sie eine Bestätigung per E-Mail mit weiteren Informationen zur Trainingseinheit.</p>
                                 <p>Falls Sie nicht am Training teilnehmen können und Ihre Anmeldung stornieren möchten, klicken Sie bitte auf den folgenden Link:</p>
-                               <!--   <p><a href="${dto.cancelUrl}" style="color: red; font-weight: bold;">Anmeldung stornieren</a></p> -->
+                                <p><a href="${dto.cancelUrl}" style="color: red; font-weight: bold;">Anmeldung stornieren</a></p> 
                                 <p>Bitte beachten Sie, dass eine Stornierung nur möglich ist, wenn diese mindestens 24 Stunden vor Beginn des Trainings erfolgt.</p>
                                 <p>Mit freundlichen Grüßen,</p>
                                 <p>Ihr Tennisschule Gorovits</p>
@@ -535,9 +535,9 @@ export class MailService {
                                 <p>Sie haben sich erfolgreich für ein Training angemeldet!</p>
                                 <p> 
                                 ${dto.valueOfTrainings && dto.valueOfTrainings > 0
-                                ? `In Ihrem Testmonat stehen Ihnen noch <strong>${dto.valueOfTrainings}</strong> Trainingseinheiten zur Verfügung.`
-                                : `In Ihrem Testmonat sind keine Trainingseinheiten mehr verfügbar.`
-                            }
+                                    ? `In Ihrem Testmonat stehen Ihnen noch <strong>${dto.valueOfTrainings}</strong> Trainingseinheiten zur Verfügung.`
+                                    : `In Ihrem Testmonat sind keine Trainingseinheiten mehr verfügbar.`
+                                }
 
                                     </p>
 
