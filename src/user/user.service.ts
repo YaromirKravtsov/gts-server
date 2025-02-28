@@ -270,6 +270,19 @@ export class UserService {
             [Op.in]: ['admin', 'trainer'],
           },
         };
+      }else if (role == 'documentVerification') {
+        whereConditions = {
+          role: {
+            [Op.in]: ['documentVerification'],
+          },
+        };
+      }
+      else if (role == 'trialMonth') {
+        whereConditions = {
+          role: {
+            [Op.in]: ['trialMonth'],
+          },
+        };
       }
       if (role == 'trainer') {
         whereConditions = {
@@ -278,6 +291,7 @@ export class UserService {
           },
         };
       }
+      
 
       if (searchQuery && searchQuery.trim() !== '') {
         whereConditions[Op.or] = [

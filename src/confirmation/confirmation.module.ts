@@ -9,11 +9,12 @@ import { TrainingService } from 'src/training/training.service';
 import { TrainingModule } from 'src/training/training.module';
 import { UserModule } from 'src/user/user.module';
 import { TelegramModule } from 'src/telegram/telegram.module';
+import { WhatsappModule } from 'src/whatsapp/whatsapp.module';
 
 @Module({
   controllers: [ConfirmationController],
   providers: [ConfirmationService],
-  imports:[ forwardRef(() => ApplicationModule), MailModule,TrainingModule, forwardRef(() => UserModule), TelegramModule],
+  imports:[ forwardRef(() => ApplicationModule), MailModule,TrainingModule, forwardRef(() => UserModule), TelegramModule, WhatsappModule],
   exports: [ConfirmationService]
 })
 export class ConfirmationModule {}

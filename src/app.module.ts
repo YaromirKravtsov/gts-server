@@ -25,6 +25,7 @@ import { join } from 'path';
 import { MulterModule } from '@nestjs/platform-express';
 import { ConfirmationModule } from './confirmation/confirmation.module';
 import { TelegramModule } from './telegram/telegram.module';
+import { WhatsappModule } from './whatsapp/whatsapp.module';
 @Module({
   providers: [
     CustomLogger,
@@ -62,6 +63,7 @@ import { TelegramModule } from './telegram/telegram.module';
     ApplicationModule,
     ConfirmationModule,
     TelegramModule,
+    WhatsappModule,
     
   ]
 })

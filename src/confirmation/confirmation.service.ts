@@ -9,6 +9,7 @@ import { TrainingService } from 'src/training/training.service';
 import { UserService } from 'src/user/user.service';
 import { escape } from 'querystring';
 import { TelegramService } from 'src/telegram/telegram.service';
+import { WhatsAppService } from 'src/whatsapp/whatsapp.service';
 type KeyDto = ConfirmEmailDto | ConfirmTrailTrainigDto
 @Injectable()
 export class ConfirmationService {
@@ -16,7 +17,7 @@ export class ConfirmationService {
         @Inject(forwardRef(() => ApplicationService)) private readonly applicationService: ApplicationService,
         private mailService: MailService, private trainigServer: TrainingService,
         @Inject(forwardRef(() => UserService)) private userService: UserService,
-        private readonly telegramService: TelegramService
+        private readonly telegramService: TelegramService, private whatsAppService: WhatsAppService
 
     ) { }
 
@@ -75,6 +76,7 @@ export class ConfirmationService {
 
                 // Отправляем сообщение через сервис TelegramService
                 await this.telegramService.sendMessage(message);
+                await this.whatsAppService.sendMessageToGroup(message);
 
             }
         } catch (e) {

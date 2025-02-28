@@ -32,6 +32,7 @@ import { ConfirmTrailTrainigDto } from 'src/confirmation/dto/confirm-trail-train
 import { ConfirmEmailDto } from 'src/confirmation/dto/confirm-email.dto';
 import { verify } from 'jsonwebtoken';
 import { TelegramService } from 'src/telegram/telegram.service';
+import { WhatsAppService } from 'src/whatsapp/whatsapp.service';
 @Injectable()
 export class ApplicationService {
   constructor(
@@ -46,7 +47,8 @@ export class ApplicationService {
     private readonly mailService: MailService,
     @Inject(forwardRef(() => ConfirmationService))
     private readonly confirmationService: ConfirmationService,
-    private readonly telegramService: TelegramService
+    private readonly telegramService: TelegramService,
+    private readonly whatsAppService: WhatsAppService
   ) { }
   generateDeleteKey = () => Math.random().toString(36).substring(2, 9);
 
@@ -170,6 +172,7 @@ export class ApplicationService {
     await this.mailService.newUserRegister(mailDto);
     const message = `Neuer Benutzer *${username}* hat seine Dokumente zur Überprüfung eingereicht.\nEmail: *${email}*`;
     await this.telegramService.sendMessage(message);
+    await this.whatsAppService.sendMessageToGroup(message);
     //TOODO Реализовать логику проверки того, что пользователь не спамит своими доками. Спас защита
     return application;
   }
@@ -669,7 +672,7 @@ export class ApplicationService {
 
     // Отправляем сообщение через Telegram-сервис (предполагается, что telegramService уже настроен)
     await this.telegramService.sendMessage(message);
-
+    await this.whatsAppService.sendMessageToGroup(message);
     return { message: 'Die Registrierung wurde erfolgreich gelöscht' };
   }
 

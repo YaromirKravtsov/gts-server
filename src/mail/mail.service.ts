@@ -782,9 +782,7 @@ export class MailService {
                             </div>
                             <div class="content">
                                 <p>Sehr geehrte/r ${fullName},</p>
-                                <p>Ihr Probemonat bei der Tennisschule Gorovits ist nun abgeschlossen. Wir hoffen, dass Ihnen die Trainingseinheiten gefallen haben und Sie Freude am Tennis gefunden haben!</p>
-                                <p>Unser Manager wird sich in Kürze mit Ihnen in Verbindung setzen, um Ihnen individuelle Trainingsmöglichkeiten in unserer Schule anzubieten.</p>
-                                <p>Falls Sie bereits jetzt Interesse an einer Mitgliedschaft oder weiteren Trainingseinheiten haben, können Sie uns gerne kontaktieren.</p>
+                                <p>Glückwunsch, Sie haben Probemonat abgeschlossen. Sie können keine weitere Trainingseinheiten mehr buchen, bitte kontaktieren Sie uns!</p>
                                 <p>Wir freuen uns darauf, Sie bald wieder auf dem Platz zu sehen!</p>
                                 <p>Mit freundlichen Grüßen,</p>
                                 <p>Ihr Tennisschule Gorovits</p>

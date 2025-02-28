@@ -16,7 +16,7 @@ export class TelegramService {
     if (!token) {
       throw new Error('TELEGRAM_BOT_TOKEN is not set in environment variables');
     }
-    // Создаем экземпляр бота с polling: false (т.к. мы будем использовать его только для отправки сообщений)
+    
     this.bot = new TelegramBot(token, { polling: false });
 
     this.chatId = process.env.TELEGRAM_CHAT_ID;

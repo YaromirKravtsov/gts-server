@@ -8,9 +8,9 @@ import { TrainingModule } from 'src/training/training.module';
 import { UserModule } from 'src/user/user.module';
 import { FilesModule } from 'src/files/files.module';
 import { MailModule } from 'src/mail/mail.module';
-import { ConfirmationService } from 'src/confirmation/confirmation.service';
 import { ConfirmationModule } from 'src/confirmation/confirmation.module';
 import { TelegramModule } from 'src/telegram/telegram.module';
+import { WhatsappModule } from 'src/whatsapp/whatsapp.module';
 
 @Module({
   providers: [ApplicationService],
@@ -20,7 +20,7 @@ import { TelegramModule } from 'src/telegram/telegram.module';
     forwardRef(() => TrainingModule),
     forwardRef(() => UserModule),
     forwardRef(() => ConfirmationModule),
-    TelegramModule
+    TelegramModule, WhatsappModule
     
   ],
   exports: [ApplicationService],
