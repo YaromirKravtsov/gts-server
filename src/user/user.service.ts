@@ -443,8 +443,9 @@ export class UserService {
       console.log()
       const testMonthGlobalUrl = process.env.STATIC_URL + 'static/' + playerJson.testMonthFileUrl;
       console.log(testMonthGlobalUrl)
+      const userRole = await this.applicationService.countValueOfPossibleTrainings(player.id)  >= 4 && player.role == 'trialMonth'? 'testmonatIsOver':player.role 
       return {
-        ...playerJson, testMonthFileUrl: process.env.STATIC_URL + 'static/' + playerJson.testMonthFileUrl
+        ...playerJson, testMonthFileUrl: process.env.STATIC_URL + 'static/' + playerJson.testMonthFileUrl , role : userRole
       };
     } catch (error) {
       console.log(error);
