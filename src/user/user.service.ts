@@ -252,7 +252,7 @@ export class UserService {
     }
   }
 
-  async searchPlayers(searchQuery?: string, role: string = 'admin', page: number = 1, limit: number = 10) {
+  async searchPlayers(searchQuery?: string, role: string = 'admin', page: number = 1, limit: number = 10):Promise<any> {
     try {
       console.log('rolerolerolerolerolerole');
       console.log(role);
@@ -302,7 +302,7 @@ export class UserService {
       }
       console.log(whereConditions);
       const offset = (page - 1) * limit;
-
+      
       const totalPlayers = await this.userRepository.count({ where: whereConditions });
       const totalPages = Math.ceil(totalPlayers / limit);
 
@@ -313,8 +313,20 @@ export class UserService {
         offset,
       });
 
+      const playersWithTrainings = await Promise.all(
+        players.map(async player => {
+          return {
+            ...player.toJSON(),
+            role: await this.applicationService.countValueOfPossibleTrainings(player.id) < 4 ? player.role : 'testmonatIsOver'
+          };
+        })
+      );
+      console.log('playersWithTrainings');
+      
+      console.log(playersWithTrainings);
+      
       return {
-        players,
+        players:playersWithTrainings,
         totalPages,
         currentPage: page,
       };
