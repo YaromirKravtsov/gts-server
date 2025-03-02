@@ -317,7 +317,7 @@ export class UserService {
         players.map(async player => {
           return {
             ...player.toJSON(),
-            role: await this.applicationService.countValueOfPossibleTrainings(player.id)  < 4 && player.role == 'trialMonth'? player.role : 'testmonatIsOver'
+            role: await this.applicationService.countValueOfPossibleTrainings(player.id)  >= 4 && player.role == 'trialMonth'? 'testmonatIsOver':player.role 
           };
         })
       );
